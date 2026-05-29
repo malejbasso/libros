@@ -398,7 +398,7 @@ const PAGES = [
   },
   {
     "type": "content",
-    "content": "<blockquote>DOCUMENTACION API REST</blockquote><p>API Simulador Hipotecario</p>"
+    "content": "<p><em>DOCUMENTACION API REST</em></p><p>API Simulador Hipotecario</p>"
   },
   {
     "type": "content",
@@ -408,13 +408,13 @@ const PAGES = [
   },
   {
     "type": "content",
-    "content": "<p>La API utiliza <strong>Autenticación Básica</strong>.</p><p><u><strong>Headers requeridos</strong></u></p><ul><li>Authorization: Basic {{credenciales_base64}}</li><li>Content-Type: application/json</li></ul><p>Las credenciales serán entregadas por Afianza al proveedor autorizado.</p>",
+    "content": "<p>La API utiliza <strong>Autenticación Básica</strong>.</p><p><u><strong>Headers requeridos</strong></u></p><p>Authorization: Basic {{credenciales_base64}}</p><p>Content-Type: application/json</p><p>Las credenciales serán entregadas por Afianza al proveedor autorizado.</p>",
     "chapter": "Autenticación",
     "chapter_label": "Actividad 3"
   },
   {
     "type": "content",
-    "content": "<p><strong>Ruta URL</strong></p><ul><li>http://{{UrlApiAfianza}}/api/MyVSitioWeb/CrearSolicitudSimulador</li></ul><p><strong>Method</strong></p><ul><li>POST</li></ul><p><strong>Headers</strong></p><ul><li>Content-Type: application/json</li><li>Authorization: Basic {{credenciales_base64}}</li></ul><h2>Estructura de solicitud</h2><p>La solicitud debe enviarse en formato JSON.</p><h3>Ejemplo Body - Con Subsidio</h3>",
+    "content": "<p><strong>Ruta URL</strong></p><p>http://{{UrlApiAfianza}}/api/MyVSitioWeb/CrearSolicitudSimulador</p><p><strong>Method</strong></p><p>POST</p><p><strong>Headers</strong></p><p>Content-Type: application/json</p><p>Authorization: Basic {{credenciales_base64}}</p><h2>Estructura de solicitud</h2><p>La solicitud debe enviarse en formato JSON.</p><h3>Ejemplo Body - Con Subsidio</h3>",
     "chapter": "API Crear Solicitud Simulador",
     "chapter_label": "Actividad 4"
   },
@@ -462,7 +462,7 @@ const PAGES = [
   },
   {
     "type": "content",
-    "content": "<h2>Valores permitidos y reglas de negocio</h2><h3>Canal</h3><ul><li>AGENCIA</li><li>BROKER</li><li>GOOGLE</li><li>INMOBILIARIO</li><li>META</li><li>REFERIDO</li><li>SIN CANAL</li><li>WEB</li></ul><h3>TipoProducto</h3><ul><li>CON SUBSIDIO</li><li>SIN SUBSIDIO</li></ul><h3>TipoSubsidio</h3><p>Aplica solo cuando TipoProducto = CON SUBSIDIO.</p><ul><li>DS1</li><li>DS19</li></ul><h3>Tramo</h3><p>Aplica solo cuando TipoSubsidio = DS1.</p><ul><li>TRAMO 1</li><li>TRAMO 2</li><li>TRAMO 3</li></ul><h3>Objetivo</h3><p>Aplica solo cuando TipoProducto = SIN SUBSIDIO.\n</p><ul><li>Compra</li><li>Fines Generales</li><li>Refinanciamiento</li></ul><h3>EstadoPropiedad</h3><ul><li>Nueva</li><li>Usada  (*) El valor Usada solo puede utilizarse cuando TipoSubsidio = DS1.</li></ul><h3>TipoBienRaiz</h3><ul><li>Casa</li><li>Departamento</li></ul><h3>EntregaVivienda</h3><ul><li>Inmediata</li><li>Futura</li></ul><h2>Estructura de respuesta</h2><p>La API retorna un objeto JSON con la siguiente estructura general:</p>",
+    "content": "<h2>Valores permitidos y reglas de negocio</h2><h3>Canal</h3><p>AGENCIA</p><p>BROKER</p><p>GOOGLE</p><p>INMOBILIARIO</p><p>META</p><p>REFERIDO</p><p>SIN CANAL</p><p>WEB</p><h3>TipoProducto</h3><p>CON SUBSIDIO</p><p>SIN SUBSIDIO</p><h3>TipoSubsidio</h3><p>Aplica solo cuando TipoProducto = CON SUBSIDIO.</p><p>DS1</p><p>DS19</p><h3>Tramo</h3><p>Aplica solo cuando TipoSubsidio = DS1.</p><p>TRAMO 1</p><p>TRAMO 2</p><p>TRAMO 3</p><h3>Objetivo</h3><p>Aplica solo cuando TipoProducto = SIN SUBSIDIO.\n</p><p>Compra</p><p>Fines Generales</p><p>Refinanciamiento</p><h3>EstadoPropiedad</h3><p>Nueva</p><p>Usada  (*) El valor Usada solo puede utilizarse cuando TipoSubsidio = DS1.</p><h3>TipoBienRaiz</h3><p>Casa</p><p>Departamento</p><h3>EntregaVivienda</h3><p>Inmediata</p><p>Futura</p><h2>Estructura de respuesta</h2><p>La API retorna un objeto JSON con la siguiente estructura general:</p>",
     "chapter": "API Crear Solicitud Simulador",
     "chapter_label": "Actividad 4"
   },
@@ -522,7 +522,7 @@ const PAGES = [
   },
   {
     "type": "content",
-    "content": "<p><strong>Ruta URL</strong></p><ul><li>http://{{UrlApiAfianza}}/api/MyVSitioWeb/ObtenerComunas</li></ul><p><strong>Method</strong></p><ul><li>GET</li></ul><p><strong>Headers</strong></p><ul><li>Authorization: Basic {{credenciales_base64}}</li></ul><h2>Estructura de respuesta</h2><p>La API retorna un arreglo JSON con objetos de tipo clave/valor.</p>",
+    "content": "<p><strong>Ruta URL</strong></p><p>http://{{UrlApiAfianza}}/api/MyVSitioWeb/ObtenerComunas</p><p><strong>Method</strong></p><p>GET</p><p><strong>Headers</strong></p><p>Authorization: Basic {{credenciales_base64}}</p><h2>Estructura de respuesta</h2><p>La API retorna un arreglo JSON con objetos de tipo clave/valor.</p>",
     "chapter": "API Obtener Comunas",
     "chapter_label": "Actividad 5"
   },
@@ -555,6 +555,12 @@ const PAGES = [
     "content": "<table><tr><th>{\n&quot;Estado&quot;: {\n&quot;Codigo&quot;: 1,\n&quot;Mensaje&quot;: &quot;Descripción del error&quot;\n},\n&quot;Data&quot;: null\n}</th></tr></table>",
     "chapter": "API Obtener Comunas",
     "chapter_label": "Actividad 5"
+  },
+  {
+    "type": "content",
+    "content": "<h2>SubTitulo 1\n\naaaaa llll</h2><p>dddddder rrreerfgerf s dfcsd fdsdf</p>",
+    "chapter": "TITULO 1",
+    "chapter_label": "Actividad 6"
   },
   {
     "type": "back"
