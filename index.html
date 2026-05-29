@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Libro Digital del Colegio</title>
+<title></title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
 <style>
@@ -392,14 +392,14 @@ body::before{
 // BOOK DATA
 // ═══════════════════════════════════════
 const META = {
-  title:    "Actividades del Colegio",
-  subtitle: "Registro de actividades y eventos",
+  title:    "",
+  subtitle: "",
   year:     new Date().getFullYear()
 };
 
 const PAGES = [
   {
-    "type": "cover"
+    "type": "blank"
   },
   {
     "type": "content",
@@ -407,165 +407,55 @@ const PAGES = [
   },
   {
     "type": "content",
-    "content": "<p>La presente documentación tiene por objetivo explicar la integración con la API REST de Afianza para la creación de simulaciones de créditos hipotecarios.</p><p>La API permite generar simulaciones hipotecarias para los siguientes tipos de producto:</p><p>Crédito hipotecario con subsidio</p><p>Crédito hipotecario sin subsidio</p><p>La simulación retorna información general de la solicitud creada y un detalle con alternativas de financiamiento, incluyendo plazo, tasa, dividendo, seguros, dividendo total, renta requerida y CAE.</p>",
-    "chapter": "Introducción",
-    "chapter_label": "Actividad 2"
+    "content": "<h1>Contenido</h1>"
   },
   {
     "type": "content",
-    "content": "<p>La API utiliza <strong>Autenticación Básica</strong>.</p><p><u><strong>Headers requeridos</strong></u></p><p>Authorization: Basic {{credenciales_base64}}</p><p>Content-Type: application/json</p><p>Las credenciales serán entregadas por Afianza al proveedor autorizado.</p>",
-    "chapter": "Autenticación",
-    "chapter_label": "Actividad 3"
+    "content": "<h1>Introducción</h1><p>La presente documentación tiene por objetivo explicar la integración con la API REST de Afianza para la creación de simulaciones de créditos hipotecarios.</p><p>La API permite generar simulaciones hipotecarias para los siguientes tipos de producto:</p><p>Crédito hipotecario con subsidio</p><p>Crédito hipotecario sin subsidio</p><p>La simulación retorna información general de la solicitud creada y un detalle con alternativas de financiamiento, incluyendo plazo, tasa, dividendo, seguros, dividendo total, renta requerida y CAE.</p>"
   },
   {
     "type": "content",
-    "content": "<p><strong>Ruta URL</strong></p><p>http://{{UrlApiAfianza}}/api/MyVSitioWeb/CrearSolicitudSimulador</p><p><strong>Method</strong></p><p>POST</p><p><strong>Headers</strong></p><p>Content-Type: application/json</p><p>Authorization: Basic {{credenciales_base64}}</p><h2>Estructura de solicitud</h2><p>La solicitud debe enviarse en formato JSON.</p><h3>Ejemplo Body - Con Subsidio</h3>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<h1>Autenticación</h1><p>La API utiliza <strong>Autenticación Básica</strong>.</p><p><u><strong>Headers requeridos</strong></u></p><p>Authorization: Basic {{credenciales_base64}}</p><p>Content-Type: application/json</p><p>Las credenciales serán entregadas por Afianza al proveedor autorizado.</p>"
   },
   {
     "type": "content",
-    "content": "<table><tr><th>{\n&quot;Canal&quot;: &quot;WEB&quot;,\n&quot;TipoProducto&quot;: &quot;CON SUBSIDIO&quot;,\n&quot;Rut&quot;: &quot;14170368-4&quot;,\n&quot;Apellidos&quot;: &quot;Martinez&quot;,\n&quot;Nombres&quot;: &quot;Mauricio&quot;,\n&quot;Telefono&quot;: &quot;995151702&quot;,\n&quot;Email&quot;: &quot;SIMULADOR@AFIANZA.CL&quot;,\n&quot;Edad&quot;: 45,\n&quot;Renta&quot;: 2000000,\n&quot;TipoSubsidio&quot;: &quot;DS1&quot;,\n&quot;Tramo&quot;: &quot;TRAMO 1&quot;,\n&quot;Objetivo&quot;: &quot;&quot;,\n&quot;EstadoPropiedad&quot;: &quot;Nueva&quot;,\n&quot;NombreProyecto&quot;: &quot;PRUEBA PAP 20260513&quot;,\n&quot;PrecioVenta&quot;: 3500,\n&quot;Ahorro&quot;: 0,\n&quot;MontoSubsidio&quot;: 0,\n&quot;MontoCredito&quot;: 2700,\n&quot;MontoFinesGenerales&quot;: 0,\n&quot;PlazoSolicitado&quot;: 30,\n&quot;TipoBienRaiz&quot;: &quot;Casa&quot;,\n&quot;EntregaVivienda&quot;: &quot;Inmediata&quot;,\n&quot;SaldoHipotecario&quot;: 0,\n&quot;IdComuna&quot;: 53\n}</th></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<h1>API Crear Solicitud Simulador</h1><p><strong>Ruta URL</strong></p><p>http://{{UrlApiAfianza}}/api/MyVSitioWeb/CrearSolicitudSimulador</p><p><strong>Method</strong></p><p>POST</p><p><strong>Headers</strong></p><p>Content-Type: application/json</p><p>Authorization: Basic {{credenciales_base64}}</p><h2>Estructura de solicitud</h2><p>La solicitud debe enviarse en formato JSON.</p><h3>Ejemplo Body - Con Subsidio</h3><table><tr><th>{\n&quot;Canal&quot;: &quot;WEB&quot;,\n&quot;TipoProducto&quot;: &quot;CON SUBSIDIO&quot;,\n&quot;Rut&quot;: &quot;14170368-4&quot;,\n&quot;Apellidos&quot;: &quot;Martinez&quot;,\n&quot;Nombres&quot;: &quot;Mauricio&quot;,\n&quot;Telefono&quot;: &quot;995151702&quot;,\n&quot;Email&quot;: &quot;SIMULADOR@AFIANZA.CL&quot;,\n&quot;Edad&quot;: 45,\n&quot;Renta&quot;: 2000000,\n&quot;TipoSubsidio&quot;: &quot;DS1&quot;,\n&quot;Tramo&quot;: &quot;TRAMO 1&quot;,\n&quot;Objetivo&quot;: &quot;&quot;,\n&quot;EstadoPropiedad&quot;: &quot;Nueva&quot;,\n&quot;NombreProyecto&quot;: &quot;PRUEBA PAP 20260513&quot;,\n&quot;PrecioVenta&quot;: 3500,\n&quot;Ahorro&quot;: 0,\n&quot;MontoSubsidio&quot;: 0,\n&quot;MontoCredito&quot;: 2700,\n&quot;MontoFinesGenerales&quot;: 0,\n&quot;PlazoSolicitado&quot;: 30,\n&quot;TipoBienRaiz&quot;: &quot;Casa&quot;,\n&quot;EntregaVivienda&quot;: &quot;Inmediata&quot;,\n&quot;SaldoHipotecario&quot;: 0,\n&quot;IdComuna&quot;: 53\n}</th></tr></table><h3>Ejemplo Body - Sin Subsidio</h3>"
   },
   {
     "type": "content",
-    "content": "<h3>Ejemplo Body - Sin Subsidio</h3>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<table><tr><th>{\n&quot;Canal&quot;: &quot;WEB&quot;,\n&quot;TipoProducto&quot;: &quot;SIN SUBSIDIO&quot;,\n&quot;Rut&quot;: &quot;14170368-4&quot;,\n&quot;Apellidos&quot;: &quot;Martinez&quot;,\n&quot;Nombres&quot;: &quot;Mauricio&quot;,\n&quot;Telefono&quot;: &quot;995151702&quot;,\n&quot;Email&quot;: &quot;SIMULADOR@AFIANZA.CL&quot;,\n&quot;Edad&quot;: 45,\n&quot;Renta&quot;: 2000000,\n&quot;TipoSubsidio&quot;: &quot;&quot;,\n&quot;Tramo&quot;: &quot;&quot;,\n&quot;Objetivo&quot;: &quot;Compra&quot;,\n&quot;EstadoPropiedad&quot;: &quot;Nueva&quot;,\n&quot;NombreProyecto&quot;: &quot;Proyecto Demo&quot;,\n&quot;PrecioVenta&quot;: 3500,\n&quot;Ahorro&quot;: 300,\n&quot;MontoSubsidio&quot;: 0,\n&quot;MontoCredito&quot;: 2700,\n&quot;MontoFinesGenerales&quot;: 0,\n&quot;PlazoSolicitado&quot;: 30,\n&quot;TipoBienRaiz&quot;: &quot;Departamento&quot;,\n&quot;EntregaVivienda&quot;: &quot;Futura&quot;,\n&quot;SaldoHipotecario&quot;: 0,\n&quot;IdComuna&quot;: 53\n}</th></tr></table><h2>Campos obligatorios por tipo de producto</h2><h3>Simulación CON SUBSIDIO</h3><p>Los siguientes campos son obligatorios cuando TipoProducto = CON SUBSIDIO.</p>"
   },
   {
     "type": "content",
-    "content": "<table><tr><th>{\n&quot;Canal&quot;: &quot;WEB&quot;,\n&quot;TipoProducto&quot;: &quot;SIN SUBSIDIO&quot;,\n&quot;Rut&quot;: &quot;14170368-4&quot;,\n&quot;Apellidos&quot;: &quot;Martinez&quot;,\n&quot;Nombres&quot;: &quot;Mauricio&quot;,\n&quot;Telefono&quot;: &quot;995151702&quot;,\n&quot;Email&quot;: &quot;SIMULADOR@AFIANZA.CL&quot;,\n&quot;Edad&quot;: 45,\n&quot;Renta&quot;: 2000000,\n&quot;TipoSubsidio&quot;: &quot;&quot;,\n&quot;Tramo&quot;: &quot;&quot;,\n&quot;Objetivo&quot;: &quot;Compra&quot;,\n&quot;EstadoPropiedad&quot;: &quot;Nueva&quot;,\n&quot;NombreProyecto&quot;: &quot;Proyecto Demo&quot;,\n&quot;PrecioVenta&quot;: 3500,\n&quot;Ahorro&quot;: 300,\n&quot;MontoSubsidio&quot;: 0,\n&quot;MontoCredito&quot;: 2700,\n&quot;MontoFinesGenerales&quot;: 0,\n&quot;PlazoSolicitado&quot;: 30,\n&quot;TipoBienRaiz&quot;: &quot;Departamento&quot;,\n&quot;EntregaVivienda&quot;: &quot;Futura&quot;,\n&quot;SaldoHipotecario&quot;: 0,\n&quot;IdComuna&quot;: 53\n}</th></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<table><tr><th>Parámetro</th><th>Tipo</th><th>Obligatorio</th><th>Descripción / Regla</th></tr><tr><td>Canal</td><td>string</td><td>Sí</td><td>Canal de origen de la solicitud</td></tr><tr><td>TipoProducto</td><td>string</td><td>Sí</td><td>Debe ser CON SUBSIDIO</td></tr><tr><td>Nombres</td><td>string</td><td>Sí</td><td>Nombres del solicitante</td></tr><tr><td>Apellidos</td><td>string</td><td>Sí</td><td>Apellidos del solicitante</td></tr><tr><td>Rut</td><td>string</td><td>Sí</td><td>Formato 99999999-9</td></tr><tr><td>Telefono</td><td>string</td><td>Sí</td><td>Teléfono de contacto</td></tr><tr><td>Edad</td><td>int</td><td>Sí</td><td>Edad del solicitante</td></tr><tr><td>Renta</td><td>int</td><td>Sí</td><td>Renta líquida mensual en pesos</td></tr><tr><td>Email</td><td>string</td><td>Sí</td><td>Correo electrónico del solicitante</td></tr><tr><td>TipoSubsidio</td><td>string</td><td>Sí</td><td>DS1 o DS19</td></tr><tr><td>Tramo</td><td>string</td><td>Condicional</td><td>Obligatorio cuando TipoSubsidio = DS1</td></tr><tr><td>TipoBienRaiz</td><td>string</td><td>Sí</td><td>Casa o Departamento</td></tr><tr><td>EstadoPropiedad</td><td>string</td><td>Sí</td><td>Nueva o Usada</td></tr><tr><td>NombreProyecto</td><td>string</td><td>Condicional</td><td>Obligatorio cuando EstadoPropiedad = Nueva o TipoSubsidio = DS19</td></tr><tr><td>EntregaVivienda</td><td>string</td><td>Condicional</td><td>Obligatorio cuando EstadoPropiedad = Nueva o TipoSubsidio = DS19</td></tr><tr><td>IdComuna</td><td>int</td><td>Sí</td><td>Identificador de comuna del proyecto</td></tr><tr><td>PrecioVenta</td><td>decimal</td><td>Sí</td><td>Precio de venta en UF</td></tr><tr><td>Ahorro</td><td>decimal</td><td>Sí</td><td>Ahorro o pie en UF</td></tr><tr><td>MontoSubsidio</td><td>decimal</td><td>Sí</td><td>Monto del subsidio en UF</td></tr><tr><td>MontoCredito</td><td>decimal</td><td>Sí</td><td>Monto del crédito solicitado en UF</td></tr><tr><td>PlazoSolicitado</td><td>int</td><td>Sí</td><td>Plazo del crédito en años</td></tr></table><h3>Simulación SIN SUBSIDIO</h3><p>Los siguientes campos son obligatorios cuando TipoProducto = SIN SUBSIDIO.</p>"
   },
   {
     "type": "content",
-    "content": "<h2>Campos obligatorios por tipo de producto</h2><h3>Simulación CON SUBSIDIO</h3><p>Los siguientes campos son obligatorios cuando TipoProducto = CON SUBSIDIO.</p>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<table><tr><th>Parámetro</th><th>Tipo</th><th>Obligatorio</th><th>Descripción / Regla</th></tr><tr><td>Canal</td><td>string</td><td>Sí</td><td>Canal de origen de la solicitud</td></tr><tr><td>TipoProducto</td><td>string</td><td>Sí</td><td>Debe ser SIN SUBSIDIO</td></tr><tr><td>Nombres</td><td>string</td><td>Sí</td><td>Nombres del solicitante</td></tr><tr><td>Apellidos</td><td>string</td><td>Sí</td><td>Apellidos del solicitante</td></tr><tr><td>Rut</td><td>string</td><td>Sí</td><td>Formato 99999999-9</td></tr><tr><td>Telefono</td><td>string</td><td>Sí</td><td>Teléfono de contacto</td></tr><tr><td>Edad</td><td>int</td><td>Sí</td><td>Edad del solicitante</td></tr><tr><td>Renta</td><td>int</td><td>Sí</td><td>Renta líquida mensual en pesos</td></tr><tr><td>Email</td><td>string</td><td>Sí</td><td>Correo electrónico del solicitante</td></tr><tr><td>Objetivo</td><td>string</td><td>Sí</td><td>Compra, Fines Generales o Refinanciamiento</td></tr><tr><td>TipoBienRaiz</td><td>string</td><td>Sí</td><td>Casa o Departamento</td></tr><tr><td>EstadoPropiedad</td><td>string</td><td>Condicional</td><td>Obligatorio cuando Objetivo = Compra</td></tr><tr><td>NombreProyecto</td><td>string</td><td>Condicional</td><td>Obligatorio cuando EstadoPropiedad = Nueva</td></tr><tr><td>EntregaVivienda</td><td>string</td><td>Condicional</td><td>Obligatorio cuando EstadoPropiedad = Nueva</td></tr><tr><td>PrecioVenta</td><td>decimal</td><td>Sí</td><td>Precio de venta en UF</td></tr><tr><td>Ahorro</td><td>decimal</td><td>Condicional</td><td>Obligatorio cuando Objetivo = Compra</td></tr><tr><td>SaldoHipotecario</td><td>decimal</td><td>No</td><td>Se utiliza principalmente cuando Objetivo = Fines Generales</td></tr><tr><td>MontoFinesGenerales</td><td>decimal</td><td>Condicional</td><td>Obligatorio cuando Objetivo = Fines Generales</td></tr><tr><td>MontoCredito</td><td>decimal</td><td>Sí</td><td>Monto del crédito solicitado en UF</td></tr><tr><td>PlazoSolicitado</td><td>int</td><td>Sí</td><td>Plazo del crédito en años</td></tr></table><h2>Valores permitidos y reglas de negocio</h2><h3>Canal</h3><p>AGENCIA</p><p>BROKER</p><p>GOOGLE</p><p>INMOBILIARIO</p><p>META</p><p>REFERIDO</p><p>SIN CANAL</p><p>WEB</p><h3>TipoProducto</h3><p>CON SUBSIDIO</p><p>SIN SUBSIDIO</p><h3>TipoSubsidio</h3><p>Aplica solo cuando TipoProducto = CON SUBSIDIO.</p><p>DS1</p><p>DS19</p><h3>Tramo</h3><p>Aplica solo cuando TipoSubsidio = DS1.</p><p>TRAMO 1</p><p>TRAMO 2</p><p>TRAMO 3</p><h3>Objetivo</h3><p>Aplica solo cuando TipoProducto = SIN SUBSIDIO.\n</p><p>Compra</p><p>Fines Generales</p><p>Refinanciamiento</p><h3>EstadoPropiedad</h3><p>Nueva</p><p>Usada  (*) El valor Usada solo puede utilizarse cuando TipoSubsidio = DS1.</p><h3>TipoBienRaiz</h3><p>Casa</p><p>Departamento</p><h3>EntregaVivienda</h3><p>Inmediata</p><p>Futura</p><h2>Estructura de respuesta</h2><p>La API retorna un objeto JSON con la siguiente estructura general:</p>"
   },
   {
     "type": "content",
-    "content": "<table><tr><th>Parámetro</th><th>Tipo</th><th>Obligatorio</th><th>Descripción / Regla</th></tr><tr><td>Canal</td><td>string</td><td>Sí</td><td>Canal de origen de la solicitud</td></tr><tr><td>TipoProducto</td><td>string</td><td>Sí</td><td>Debe ser CON SUBSIDIO</td></tr><tr><td>Nombres</td><td>string</td><td>Sí</td><td>Nombres del solicitante</td></tr><tr><td>Apellidos</td><td>string</td><td>Sí</td><td>Apellidos del solicitante</td></tr><tr><td>Rut</td><td>string</td><td>Sí</td><td>Formato 99999999-9</td></tr><tr><td>Telefono</td><td>string</td><td>Sí</td><td>Teléfono de contacto</td></tr><tr><td>Edad</td><td>int</td><td>Sí</td><td>Edad del solicitante</td></tr><tr><td>Renta</td><td>int</td><td>Sí</td><td>Renta líquida mensual en pesos</td></tr><tr><td>Email</td><td>string</td><td>Sí</td><td>Correo electrónico del solicitante</td></tr><tr><td>TipoSubsidio</td><td>string</td><td>Sí</td><td>DS1 o DS19</td></tr><tr><td>Tramo</td><td>string</td><td>Condicional</td><td>Obligatorio cuando TipoSubsidio = DS1</td></tr><tr><td>TipoBienRaiz</td><td>string</td><td>Sí</td><td>Casa o Departamento</td></tr><tr><td>EstadoPropiedad</td><td>string</td><td>Sí</td><td>Nueva o Usada</td></tr><tr><td>NombreProyecto</td><td>string</td><td>Condicional</td><td>Obligatorio cuando EstadoPropiedad = Nueva o TipoSubsidio = DS19</td></tr><tr><td>EntregaVivienda</td><td>string</td><td>Condicional</td><td>Obligatorio cuando EstadoPropiedad = Nueva o TipoSubsidio = DS19</td></tr><tr><td>IdComuna</td><td>int</td><td>Sí</td><td>Identificador de comuna del proyecto</td></tr><tr><td>PrecioVenta</td><td>decimal</td><td>Sí</td><td>Precio de venta en UF</td></tr><tr><td>Ahorro</td><td>decimal</td><td>Sí</td><td>Ahorro o pie en UF</td></tr><tr><td>MontoSubsidio</td><td>decimal</td><td>Sí</td><td>Monto del subsidio en UF</td></tr><tr><td>MontoCredito</td><td>decimal</td><td>Sí</td><td>Monto del crédito solicitado en UF</td></tr><tr><td>PlazoSolicitado</td><td>int</td><td>Sí</td><td>Plazo del crédito en años</td></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<table><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr><tr><td>Estado</td><td>object</td><td>Resultado de la operación</td></tr><tr><td>Estado.Codigo</td><td>int</td><td>0 para éxito, 1 para error</td></tr><tr><td>Estado.Mensaje</td><td>string/null</td><td>Mensaje descriptivo en caso de error</td></tr><tr><td>Data</td><td>object/null</td><td>Información de la simulación generada</td></tr><tr><td>Data.Encabezado</td><td>object</td><td>Datos generales de la simulación</td></tr><tr><td>Data.Detalle</td><td>array</td><td>Alternativas de simulación por plazo</td></tr></table><p><strong>Encabezado</strong></p><table><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr><tr><td>NroSimulacion</td><td>int</td><td>Número interno de simulación generada</td></tr><tr><td>FechaSimulacion</td><td>datetime</td><td>Fecha de creación de la simulación</td></tr><tr><td>Canal</td><td>string</td><td>Canal informado en la solicitud</td></tr><tr><td>TipoProducto</td><td>string</td><td>Tipo de producto informado</td></tr><tr><td>Rut</td><td>string</td><td>RUT del solicitante</td></tr><tr><td>Solicitante</td><td>string</td><td>Nombre completo del solicitante</td></tr><tr><td>Telefono</td><td>string</td><td>Teléfono informado</td></tr><tr><td>Email</td><td>string</td><td>Correo informado</td></tr><tr><td>Edad</td><td>int</td><td>Edad del solicitante</td></tr><tr><td>Renta</td><td>int</td><td>Renta líquida mensual</td></tr><tr><td>TipoSubsidio</td><td>string</td><td>Tipo de subsidio informado</td></tr><tr><td>Tramo</td><td>string</td><td>Tramo informado</td></tr><tr><td>Objetivo</td><td>string</td><td>Objetivo informado</td></tr><tr><td>EstadoPropiedad</td><td>string</td><td>Estado de la propiedad</td></tr><tr><td>NombreProyecto</td><td>string</td><td>Nombre del proyecto</td></tr><tr><td>TipoBienRaiz</td><td>string</td><td>Tipo de bien raíz</td></tr><tr><td>EntregaVivienda</td><td>string</td><td>Entrega de vivienda</td></tr><tr><td>PrecioVenta</td><td>decimal</td><td>Precio de venta en UF</td></tr><tr><td>Ahorro</td><td>decimal</td><td>Ahorro o pie en UF</td></tr><tr><td>MontoSubsidio</td><td>decimal</td><td>Monto del subsidio en UF</td></tr><tr><td>MontoCredito</td><td>decimal</td><td>Monto del crédito en UF</td></tr><tr><td>MontoFinesGenerales</td><td>decimal</td><td>Monto para fines generales en UF</td></tr><tr><td>PlazoSolicitado</td><td>int</td><td>Plazo solicitado en años</td></tr><tr><td>Tasacion</td><td>decimal</td><td>Gasto de tasación en UF</td></tr><tr><td>EstudioTitulos</td><td>decimal</td><td>Gasto de estudio de títulos en UF</td></tr><tr><td>BorradorEscritura</td><td>decimal</td><td>Gasto de borrador de escritura en UF</td></tr><tr><td>Notaria</td><td>decimal</td><td>Gasto de notaría en UF</td></tr><tr><td>ImpuestoUnico</td><td>decimal</td><td>Impuesto único en UF</td></tr><tr><td>CBR</td><td>decimal</td><td>Conservador de bienes raíces en UF</td></tr><tr><td>SALDO_HIPOTECARIO</td><td>decimal</td><td>Saldo hipotecario informado en UF</td></tr><tr><td>COMUNA_ID</td><td>int</td><td>Identificador de comuna informado</td></tr></table><p><strong>Detalle</strong></p>"
   },
   {
     "type": "content",
-    "content": "<h3>Simulación SIN SUBSIDIO</h3><p>Los siguientes campos son obligatorios cuando TipoProducto = SIN SUBSIDIO.</p>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<table><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr><tr><td>Plazo</td><td>int</td><td>Plazo de la alternativa en años</td></tr><tr><td>TasaAnual</td><td>decimal</td><td>Tasa anual aplicada</td></tr><tr><td>DividendoUF</td><td>decimal</td><td>Dividendo base en UF</td></tr><tr><td>SeguroDesgravamenUF</td><td>decimal</td><td>Seguro de desgravamen en UF</td></tr><tr><td>SeguroIncendioUF</td><td>decimal</td><td>Seguro de incendio en UF</td></tr><tr><td>DividendoTotalUF</td><td>decimal</td><td>Dividendo total mensual en UF</td></tr><tr><td>DividendoTotalCLP</td><td>int</td><td>Dividendo total mensual en pesos</td></tr><tr><td>RentaRequerida</td><td>int</td><td>Renta mínima requerida en pesos</td></tr><tr><td>CAE</td><td>decimal</td><td>Carga Anual Equivalente</td></tr></table><h3>Ejemplo de respuesta exitosa</h3>"
   },
   {
     "type": "content",
-    "content": "<table><tr><th>Parámetro</th><th>Tipo</th><th>Obligatorio</th><th>Descripción / Regla</th></tr><tr><td>Canal</td><td>string</td><td>Sí</td><td>Canal de origen de la solicitud</td></tr><tr><td>TipoProducto</td><td>string</td><td>Sí</td><td>Debe ser SIN SUBSIDIO</td></tr><tr><td>Nombres</td><td>string</td><td>Sí</td><td>Nombres del solicitante</td></tr><tr><td>Apellidos</td><td>string</td><td>Sí</td><td>Apellidos del solicitante</td></tr><tr><td>Rut</td><td>string</td><td>Sí</td><td>Formato 99999999-9</td></tr><tr><td>Telefono</td><td>string</td><td>Sí</td><td>Teléfono de contacto</td></tr><tr><td>Edad</td><td>int</td><td>Sí</td><td>Edad del solicitante</td></tr><tr><td>Renta</td><td>int</td><td>Sí</td><td>Renta líquida mensual en pesos</td></tr><tr><td>Email</td><td>string</td><td>Sí</td><td>Correo electrónico del solicitante</td></tr><tr><td>Objetivo</td><td>string</td><td>Sí</td><td>Compra, Fines Generales o Refinanciamiento</td></tr><tr><td>TipoBienRaiz</td><td>string</td><td>Sí</td><td>Casa o Departamento</td></tr><tr><td>EstadoPropiedad</td><td>string</td><td>Condicional</td><td>Obligatorio cuando Objetivo = Compra</td></tr><tr><td>NombreProyecto</td><td>string</td><td>Condicional</td><td>Obligatorio cuando EstadoPropiedad = Nueva</td></tr><tr><td>EntregaVivienda</td><td>string</td><td>Condicional</td><td>Obligatorio cuando EstadoPropiedad = Nueva</td></tr><tr><td>PrecioVenta</td><td>decimal</td><td>Sí</td><td>Precio de venta en UF</td></tr><tr><td>Ahorro</td><td>decimal</td><td>Condicional</td><td>Obligatorio cuando Objetivo = Compra</td></tr><tr><td>SaldoHipotecario</td><td>decimal</td><td>No</td><td>Se utiliza principalmente cuando Objetivo = Fines Generales</td></tr><tr><td>MontoFinesGenerales</td><td>decimal</td><td>Condicional</td><td>Obligatorio cuando Objetivo = Fines Generales</td></tr><tr><td>MontoCredito</td><td>decimal</td><td>Sí</td><td>Monto del crédito solicitado en UF</td></tr><tr><td>PlazoSolicitado</td><td>int</td><td>Sí</td><td>Plazo del crédito en años</td></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<table><tr><th>{\n&quot;Estado&quot;: {\n&quot;Codigo&quot;: 0,\n&quot;Mensaje&quot;: null\n},\n&quot;Data&quot;: {\n&quot;Encabezado&quot;: {\n&quot;NroSimulacion&quot;: 6763,\n&quot;FechaSimulacion&quot;: &quot;2026-05-22T00:00:00&quot;,\n&quot;Canal&quot;: &quot;WEB&quot;,\n&quot;TipoProducto&quot;: &quot;CON SUBSIDIO&quot;,\n&quot;Rut&quot;: &quot;14170368-4&quot;,\n&quot;Solicitante&quot;: &quot;MAURICIO MARTINEZ&quot;,\n&quot;Telefono&quot;: &quot;995151702&quot;,\n&quot;Email&quot;: &quot;SIMULADOR@AFIANZA.CL&quot;,\n&quot;Edad&quot;: 45,\n&quot;Renta&quot;: 2000000,\n&quot;TipoSubsidio&quot;: &quot;DS1&quot;,\n&quot;Tramo&quot;: &quot;TRAMO 1&quot;,\n&quot;Objetivo&quot;: &quot;&quot;,\n&quot;EstadoPropiedad&quot;: &quot;Nueva&quot;,\n&quot;NombreProyecto&quot;: &quot;PRUEBA PAP 20260513&quot;,\n&quot;TipoBienRaiz&quot;: &quot;Casa&quot;,\n&quot;EntregaVivienda&quot;: &quot;Inmediata&quot;,\n&quot;PrecioVenta&quot;: 3500.000000,\n&quot;Ahorro&quot;: 0.000000,\n&quot;MontoSubsidio&quot;: 0.000000,\n&quot;MontoCredito&quot;: 2700.000000,\n&quot;MontoFinesGenerales&quot;: 0.000000,\n&quot;PlazoSolicitado&quot;: 30,\n&quot;Tasacion&quot;: 2.5,\n&quot;EstudioTitulos&quot;: 3.5,\n&quot;BorradorEscritura&quot;: 3,\n&quot;Notaria&quot;: 3,\n&quot;ImpuestoUnico&quot;: 5.400000,\n&quot;CBR&quot;: 24.500000,\n&quot;SALDO_HIPOTECARIO&quot;: 0.000000,\n&quot;COMUNA_ID&quot;: 53\n},\n&quot;Detalle&quot;: [\n{\n&quot;Plazo&quot;: 30,\n&quot;TasaAnual&quot;: 0.059800,\n&quot;DividendoUF&quot;: 15.880350,\n&quot;SeguroDesgravamenUF&quot;: 0.191295,\n&quot;SeguroIncendioUF&quot;: 0.626157,\n&quot;DividendoTotalUF&quot;: 16.697802,\n&quot;DividendoTotalCLP&quot;: 675571,\n&quot;RentaRequerida&quot;: 2251903,\n&quot;CAE&quot;: 0.064500\n},\n{\n&quot;Plazo&quot;: 25,\n&quot;TasaAnual&quot;: 0.059800,\n&quot;DividendoUF&quot;: 17.103707,\n&quot;SeguroDesgravamenUF&quot;: 0.191295,\n&quot;SeguroIncendioUF&quot;: 0.626157,\n&quot;DividendoTotalUF&quot;: 17.921159,\n&quot;DividendoTotalCLP&quot;: 725066,\n&quot;RentaRequerida&quot;: 2416886,\n&quot;CAE&quot;: 0.064695\n},\n{\n&quot;Plazo&quot;: 20,\n&quot;TasaAnual&quot;: 0.059800,\n&quot;DividendoUF&quot;: 19.067552,\n&quot;SeguroDesgravamenUF&quot;: 0.191295,\n&quot;SeguroIncendioUF&quot;: 0.626157,\n&quot;DividendoTotalUF&quot;: 19.885004,\n&quot;DividendoTotalCLP&quot;: 804521,\n&quot;RentaRequerida&quot;: 2681736,\n&quot;CAE&quot;: 0.064932\n}]\n}\n}</th></tr></table>"
   },
   {
     "type": "content",
-    "content": "<h2>Valores permitidos y reglas de negocio</h2><h3>Canal</h3><p>AGENCIA</p><p>BROKER</p><p>GOOGLE</p><p>INMOBILIARIO</p><p>META</p><p>REFERIDO</p><p>SIN CANAL</p><p>WEB</p><h3>TipoProducto</h3><p>CON SUBSIDIO</p><p>SIN SUBSIDIO</p><h3>TipoSubsidio</h3><p>Aplica solo cuando TipoProducto = CON SUBSIDIO.</p><p>DS1</p><p>DS19</p><h3>Tramo</h3><p>Aplica solo cuando TipoSubsidio = DS1.</p><p>TRAMO 1</p><p>TRAMO 2</p><p>TRAMO 3</p><h3>Objetivo</h3><p>Aplica solo cuando TipoProducto = SIN SUBSIDIO.\n</p><p>Compra</p><p>Fines Generales</p><p>Refinanciamiento</p><h3>EstadoPropiedad</h3><p>Nueva</p><p>Usada  (*) El valor Usada solo puede utilizarse cuando TipoSubsidio = DS1.</p><h3>TipoBienRaiz</h3><p>Casa</p><p>Departamento</p><h3>EntregaVivienda</h3><p>Inmediata</p><p>Futura</p><h2>Estructura de respuesta</h2><p>La API retorna un objeto JSON con la siguiente estructura general:</p>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<h3>Ejemplo de respuesta con error</h3><table><tr><th>{\n&quot;Estado&quot;: {\n&quot;Codigo&quot;: 1,\n&quot;Mensaje&quot;: &quot;Descripción del error&quot;\n},\n&quot;Data&quot;: null\n}</th></tr></table>"
   },
   {
     "type": "content",
-    "content": "<table><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr><tr><td>Estado</td><td>object</td><td>Resultado de la operación</td></tr><tr><td>Estado.Codigo</td><td>int</td><td>0 para éxito, 1 para error</td></tr><tr><td>Estado.Mensaje</td><td>string/null</td><td>Mensaje descriptivo en caso de error</td></tr><tr><td>Data</td><td>object/null</td><td>Información de la simulación generada</td></tr><tr><td>Data.Encabezado</td><td>object</td><td>Datos generales de la simulación</td></tr><tr><td>Data.Detalle</td><td>array</td><td>Alternativas de simulación por plazo</td></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
+    "content": "<h1>API Obtener Comunas</h1><p><strong>Ruta URL</strong></p><p>http://{{UrlApiAfianza}}/api/MyVSitioWeb/ObtenerComunas</p><p><strong>Method</strong></p><p>GET</p><p><strong>Headers</strong></p><p>Authorization: Basic {{credenciales_base64}}</p><h2>Estructura de respuesta</h2><p>La API retorna un arreglo JSON con objetos de tipo clave/valor.</p><table><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr><tr><td>Key</td><td>int</td><td>Identificador de la comuna</td></tr><tr><td>Value</td><td>string</td><td>Nombre de la comuna y región asociada</td></tr></table><h3>Ejemplo respuesta exitosa</h3><table><tr><th>[\n{\n&quot;Key&quot;: 53,\n&quot;Value&quot;: &quot;MAIPU (REGIÓN METROPOLITANA DE SANTIAGO)&quot;\n},\n{\n&quot;Key&quot;: 33,\n&quot;Value&quot;: &quot;PROVIDENCIA (REGIÓN METROPOLITANA DE SANTIAGO)&quot;\n},\n{\n&quot;Key&quot;: 120,\n&quot;Value&quot;: &quot;VALPARAISO (REGIÓN DE VALPARAÍSO)&quot;\n},\n{\n&quot;Key&quot;: 262,\n&quot;Value&quot;: &quot;TEMUCO (REGIÓN DE LA ARAUCANÍA)&quot;\n}\n]</th></tr></table><h3>Consideraciones</h3><p>El valor Key corresponde al identificador que debe enviarse en el campo IdComuna al momento de crear la simulación.</p><h3>Ejemplo respuesta con error</h3><table><tr><th>{\n&quot;Estado&quot;: {\n&quot;Codigo&quot;: 1,\n&quot;Mensaje&quot;: &quot;Descripción del error&quot;\n},\n&quot;Data&quot;: null\n}</th></tr></table>"
   },
   {
     "type": "content",
-    "content": "<p><strong>Encabezado</strong></p>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
-  },
-  {
-    "type": "content",
-    "content": "<table><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr><tr><td>NroSimulacion</td><td>int</td><td>Número interno de simulación generada</td></tr><tr><td>FechaSimulacion</td><td>datetime</td><td>Fecha de creación de la simulación</td></tr><tr><td>Canal</td><td>string</td><td>Canal informado en la solicitud</td></tr><tr><td>TipoProducto</td><td>string</td><td>Tipo de producto informado</td></tr><tr><td>Rut</td><td>string</td><td>RUT del solicitante</td></tr><tr><td>Solicitante</td><td>string</td><td>Nombre completo del solicitante</td></tr><tr><td>Telefono</td><td>string</td><td>Teléfono informado</td></tr><tr><td>Email</td><td>string</td><td>Correo informado</td></tr><tr><td>Edad</td><td>int</td><td>Edad del solicitante</td></tr><tr><td>Renta</td><td>int</td><td>Renta líquida mensual</td></tr><tr><td>TipoSubsidio</td><td>string</td><td>Tipo de subsidio informado</td></tr><tr><td>Tramo</td><td>string</td><td>Tramo informado</td></tr><tr><td>Objetivo</td><td>string</td><td>Objetivo informado</td></tr><tr><td>EstadoPropiedad</td><td>string</td><td>Estado de la propiedad</td></tr><tr><td>NombreProyecto</td><td>string</td><td>Nombre del proyecto</td></tr><tr><td>TipoBienRaiz</td><td>string</td><td>Tipo de bien raíz</td></tr><tr><td>EntregaVivienda</td><td>string</td><td>Entrega de vivienda</td></tr><tr><td>PrecioVenta</td><td>decimal</td><td>Precio de venta en UF</td></tr><tr><td>Ahorro</td><td>decimal</td><td>Ahorro o pie en UF</td></tr><tr><td>MontoSubsidio</td><td>decimal</td><td>Monto del subsidio en UF</td></tr><tr><td>MontoCredito</td><td>decimal</td><td>Monto del crédito en UF</td></tr><tr><td>MontoFinesGenerales</td><td>decimal</td><td>Monto para fines generales en UF</td></tr><tr><td>PlazoSolicitado</td><td>int</td><td>Plazo solicitado en años</td></tr><tr><td>Tasacion</td><td>decimal</td><td>Gasto de tasación en UF</td></tr><tr><td>EstudioTitulos</td><td>decimal</td><td>Gasto de estudio de títulos en UF</td></tr><tr><td>BorradorEscritura</td><td>decimal</td><td>Gasto de borrador de escritura en UF</td></tr><tr><td>Notaria</td><td>decimal</td><td>Gasto de notaría en UF</td></tr><tr><td>ImpuestoUnico</td><td>decimal</td><td>Impuesto único en UF</td></tr><tr><td>CBR</td><td>decimal</td><td>Conservador de bienes raíces en UF</td></tr><tr><td>SALDO_HIPOTECARIO</td><td>decimal</td><td>Saldo hipotecario informado en UF</td></tr><tr><td>COMUNA_ID</td><td>int</td><td>Identificador de comuna informado</td></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
-  },
-  {
-    "type": "content",
-    "content": "<p><strong>Detalle</strong></p>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
-  },
-  {
-    "type": "content",
-    "content": "<table><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr><tr><td>Plazo</td><td>int</td><td>Plazo de la alternativa en años</td></tr><tr><td>TasaAnual</td><td>decimal</td><td>Tasa anual aplicada</td></tr><tr><td>DividendoUF</td><td>decimal</td><td>Dividendo base en UF</td></tr><tr><td>SeguroDesgravamenUF</td><td>decimal</td><td>Seguro de desgravamen en UF</td></tr><tr><td>SeguroIncendioUF</td><td>decimal</td><td>Seguro de incendio en UF</td></tr><tr><td>DividendoTotalUF</td><td>decimal</td><td>Dividendo total mensual en UF</td></tr><tr><td>DividendoTotalCLP</td><td>int</td><td>Dividendo total mensual en pesos</td></tr><tr><td>RentaRequerida</td><td>int</td><td>Renta mínima requerida en pesos</td></tr><tr><td>CAE</td><td>decimal</td><td>Carga Anual Equivalente</td></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
-  },
-  {
-    "type": "content",
-    "content": "<h3>Ejemplo de respuesta exitosa</h3>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
-  },
-  {
-    "type": "content",
-    "content": "<table><tr><th>{\n&quot;Estado&quot;: {\n&quot;Codigo&quot;: 0,\n&quot;Mensaje&quot;: null\n},\n&quot;Data&quot;: {\n&quot;Encabezado&quot;: {\n&quot;NroSimulacion&quot;: 6763,\n&quot;FechaSimulacion&quot;: &quot;2026-05-22T00:00:00&quot;,\n&quot;Canal&quot;: &quot;WEB&quot;,\n&quot;TipoProducto&quot;: &quot;CON SUBSIDIO&quot;,\n&quot;Rut&quot;: &quot;14170368-4&quot;,\n&quot;Solicitante&quot;: &quot;MAURICIO MARTINEZ&quot;,\n&quot;Telefono&quot;: &quot;995151702&quot;,\n&quot;Email&quot;: &quot;SIMULADOR@AFIANZA.CL&quot;,\n&quot;Edad&quot;: 45,\n&quot;Renta&quot;: 2000000,\n&quot;TipoSubsidio&quot;: &quot;DS1&quot;,\n&quot;Tramo&quot;: &quot;TRAMO 1&quot;,\n&quot;Objetivo&quot;: &quot;&quot;,\n&quot;EstadoPropiedad&quot;: &quot;Nueva&quot;,\n&quot;NombreProyecto&quot;: &quot;PRUEBA PAP 20260513&quot;,\n&quot;TipoBienRaiz&quot;: &quot;Casa&quot;,\n&quot;EntregaVivienda&quot;: &quot;Inmediata&quot;,\n&quot;PrecioVenta&quot;: 3500.000000,\n&quot;Ahorro&quot;: 0.000000,\n&quot;MontoSubsidio&quot;: 0.000000,\n&quot;MontoCredito&quot;: 2700.000000,\n&quot;MontoFinesGenerales&quot;: 0.000000,\n&quot;PlazoSolicitado&quot;: 30,\n&quot;Tasacion&quot;: 2.5,\n&quot;EstudioTitulos&quot;: 3.5,\n&quot;BorradorEscritura&quot;: 3,\n&quot;Notaria&quot;: 3,\n&quot;ImpuestoUnico&quot;: 5.400000,\n&quot;CBR&quot;: 24.500000,\n&quot;SALDO_HIPOTECARIO&quot;: 0.000000,\n&quot;COMUNA_ID&quot;: 53\n},\n&quot;Detalle&quot;: [\n{\n&quot;Plazo&quot;: 30,\n&quot;TasaAnual&quot;: 0.059800,\n&quot;DividendoUF&quot;: 15.880350,\n&quot;SeguroDesgravamenUF&quot;: 0.191295,\n&quot;SeguroIncendioUF&quot;: 0.626157,\n&quot;DividendoTotalUF&quot;: 16.697802,\n&quot;DividendoTotalCLP&quot;: 675571,\n&quot;RentaRequerida&quot;: 2251903,\n&quot;CAE&quot;: 0.064500\n},\n{\n&quot;Plazo&quot;: 25,\n&quot;TasaAnual&quot;: 0.059800,\n&quot;DividendoUF&quot;: 17.103707,\n&quot;SeguroDesgravamenUF&quot;: 0.191295,\n&quot;SeguroIncendioUF&quot;: 0.626157,\n&quot;DividendoTotalUF&quot;: 17.921159,\n&quot;DividendoTotalCLP&quot;: 725066,\n&quot;RentaRequerida&quot;: 2416886,\n&quot;CAE&quot;: 0.064695\n},\n{\n&quot;Plazo&quot;: 20,\n&quot;TasaAnual&quot;: 0.059800,\n&quot;DividendoUF&quot;: 19.067552,\n&quot;SeguroDesgravamenUF&quot;: 0.191295,\n&quot;SeguroIncendioUF&quot;: 0.626157,\n&quot;DividendoTotalUF&quot;: 19.885004,\n&quot;DividendoTotalCLP&quot;: 804521,\n&quot;RentaRequerida&quot;: 2681736,\n&quot;CAE&quot;: 0.064932\n}]\n}\n}</th></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
-  },
-  {
-    "type": "content",
-    "content": "<h3>Ejemplo de respuesta con error</h3>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
-  },
-  {
-    "type": "content",
-    "content": "<table><tr><th>{\n&quot;Estado&quot;: {\n&quot;Codigo&quot;: 1,\n&quot;Mensaje&quot;: &quot;Descripción del error&quot;\n},\n&quot;Data&quot;: null\n}</th></tr></table>",
-    "chapter": "API Crear Solicitud Simulador",
-    "chapter_label": "Actividad 4"
-  },
-  {
-    "type": "content",
-    "content": "<p><strong>Ruta URL</strong></p><p>http://{{UrlApiAfianza}}/api/MyVSitioWeb/ObtenerComunas</p><p><strong>Method</strong></p><p>GET</p><p><strong>Headers</strong></p><p>Authorization: Basic {{credenciales_base64}}</p><h2>Estructura de respuesta</h2><p>La API retorna un arreglo JSON con objetos de tipo clave/valor.</p>",
-    "chapter": "API Obtener Comunas",
-    "chapter_label": "Actividad 5"
-  },
-  {
-    "type": "content",
-    "content": "<table><tr><th>Campo</th><th>Tipo</th><th>Descripción</th></tr><tr><td>Key</td><td>int</td><td>Identificador de la comuna</td></tr><tr><td>Value</td><td>string</td><td>Nombre de la comuna y región asociada</td></tr></table>",
-    "chapter": "API Obtener Comunas",
-    "chapter_label": "Actividad 5"
-  },
-  {
-    "type": "content",
-    "content": "<h3>Ejemplo respuesta exitosa</h3>",
-    "chapter": "API Obtener Comunas",
-    "chapter_label": "Actividad 5"
-  },
-  {
-    "type": "content",
-    "content": "<table><tr><th>[\n{\n&quot;Key&quot;: 53,\n&quot;Value&quot;: &quot;MAIPU (REGIÓN METROPOLITANA DE SANTIAGO)&quot;\n},\n{\n&quot;Key&quot;: 33,\n&quot;Value&quot;: &quot;PROVIDENCIA (REGIÓN METROPOLITANA DE SANTIAGO)&quot;\n},\n{\n&quot;Key&quot;: 120,\n&quot;Value&quot;: &quot;VALPARAISO (REGIÓN DE VALPARAÍSO)&quot;\n},\n{\n&quot;Key&quot;: 262,\n&quot;Value&quot;: &quot;TEMUCO (REGIÓN DE LA ARAUCANÍA)&quot;\n}\n]</th></tr></table>",
-    "chapter": "API Obtener Comunas",
-    "chapter_label": "Actividad 5"
-  },
-  {
-    "type": "content",
-    "content": "<h3>Consideraciones</h3><p>El valor Key corresponde al identificador que debe enviarse en el campo IdComuna al momento de crear la simulación.</p><h3>Ejemplo respuesta con error</h3>",
-    "chapter": "API Obtener Comunas",
-    "chapter_label": "Actividad 5"
-  },
-  {
-    "type": "content",
-    "content": "<table><tr><th>{\n&quot;Estado&quot;: {\n&quot;Codigo&quot;: 1,\n&quot;Mensaje&quot;: &quot;Descripción del error&quot;\n},\n&quot;Data&quot;: null\n}</th></tr></table>",
-    "chapter": "API Obtener Comunas",
-    "chapter_label": "Actividad 5"
-  },
-  {
-    "type": "content",
-    "content": "<h2>SubTitulo 1\n\naaaaa llll</h2><p>dddddder rrreerfgerf s dfcsd fdsdf</p>",
-    "chapter": "TITULO 1",
-    "chapter_label": "Actividad 6"
+    "content": "<h1>TITULO 1</h1><h2>SubTitulo 1\n\naaaaa llll</h2><p>dddddder rrreerfgerf s dfcsd fdsdf</p>"
   },
   {
     "type": "back"
