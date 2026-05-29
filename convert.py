@@ -474,8 +474,10 @@ const PAGES = {pages_json};
 const isMobile =
   window.innerWidth <= 1100;
 
+
 // ─────────────────────────────
 // ORDEN REAL DE LIBRO
+// ─────────────────────────────
 //
 // Spread 0 = [vacío][1]
 //
@@ -484,9 +486,10 @@ const isMobile =
 // Spread 2 = [4][5]
 //
 // Spread 3 = [6][7]
+//
 // ─────────────────────────────
 
-function spread(n){
+function spread(n){{
 
   if(n === 0){{
     return {{
@@ -499,7 +502,7 @@ function spread(n){
     left:PAGES[(n*2)-1] || null,
     right:PAGES[(n*2)] || null
   }};
-}
+}}
 
 const total =
   Math.ceil((PAGES.length + 1)/2);
@@ -566,7 +569,7 @@ function updateUI(){{
 
   if(current === 0){{
     p = 1;
-  }}else{{
+  }} else {{
     p = current * 2;
   }}
 
@@ -632,7 +635,7 @@ function go(dir){{
       back.appendChild(p);
     }}
 
-  }}else{{
+  }} else {{
 
     flip.style.left='0';
     flip.style.transformOrigin='right center';
@@ -686,6 +689,7 @@ function go(dir){{
         dir > 0
           ? 'rotateY(-180deg)'
           : 'rotateY(180deg)';
+
     }});
   }});
 
@@ -717,6 +721,7 @@ document.addEventListener('keydown',e=>{{
   if(e.key==='ArrowRight')go(1);
 
   if(e.key==='ArrowLeft')go(-1);
+
 }});
 
 render(0);
