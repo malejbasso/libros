@@ -315,6 +315,7 @@ function go(dir){{
   if(nx<0||nx>=totalSpreads)return;
   busy=true;playFlip();
   const cs=sp(cur),ns=sp(nx);
+
   if(isMobile){{
     const f=RS.firstChild;
     if(f){{f.style.transition='opacity .25s';f.style.opacity='0';}}
@@ -326,31 +327,63 @@ function go(dir){{
       ui();busy=false;
     }},250);return;
   }}
+
   if(dir>0){{
-    FL.style.left='var(--pw)';FL.style.transformOrigin='left center';
-    FF.innerHTML='';FS.style.background='linear-gradient(to left,rgba(0,0,0,.38),transparent 72%)';FF.appendChild(FS);
+    // Avanzar: página DERECHA actual se dobla hacia la izquierda
+    // Mientras anima: slot izquierdo ya muestra la nueva página izquierda
+    // slot derecho ya muestra la nueva página derecha (detrás del flip)
+    FL.style.left='var(--pw)';
+    FL.style.transformOrigin='left center';
+    FF.innerHTML='';
+    FS.style.background='linear-gradient(to left,rgba(0,0,0,.38),transparent 72%)';
+    FF.appendChild(FS);
+    // Frente = página derecha actual
     if(cs.r){{const e=mkPage(cs.r,'right-page');e.style.cssText='position:absolute;inset:0';FF.appendChild(e);}}
+    // Reverso = nueva página izquierda (espejada, es el dorso)
     FB.innerHTML='';
     if(ns.l){{const e=mkPage(ns.l,'left-page');e.style.cssText='position:absolute;inset:0;transform:scaleX(-1)';FB.appendChild(e);}}
-    RS.innerHTML='';RS.appendChild(mkPage(ns.r,'right-page'));
+    // Actualizar AMBOS slots del nuevo spread antes de animar
+    LS.innerHTML=''; // el reverso del flip mostrará ns.l, pero el slot ya queda listo
+    LS.appendChild(mkPage(ns.l,'left-page'));
+    RS.innerHTML='';
+    RS.appendChild(mkPage(ns.r,'right-page'));
   }}else{{
-    FL.style.left='0';FL.style.transformOrigin='right center';
-    FF.innerHTML='';FS.style.background='linear-gradient(to right,rgba(0,0,0,.38),transparent 72%)';FF.appendChild(FS);
+    // Retroceder: página IZQUIERDA actual se dobla hacia la derecha
+    FL.style.left='0';
+    FL.style.transformOrigin='right center';
+    FF.innerHTML='';
+    FS.style.background='linear-gradient(to right,rgba(0,0,0,.38),transparent 72%)';
+    FF.appendChild(FS);
+    // Frente = página izquierda actual
     if(cs.l){{const e=mkPage(cs.l,'left-page');e.style.cssText='position:absolute;inset:0';FF.appendChild(e);}}
+    // Reverso = nueva página derecha (espejada)
     FB.innerHTML='';
     if(ns.r){{const e=mkPage(ns.r,'right-page');e.style.cssText='position:absolute;inset:0;transform:scaleX(-1)';FB.appendChild(e);}}
-    LS.innerHTML='';LS.appendChild(mkPage(ns.l,'left-page'));
+    // Actualizar AMBOS slots del spread anterior
+    LS.innerHTML='';
+    LS.appendChild(mkPage(ns.l,'left-page'));
+    RS.innerHTML='';
+    RS.appendChild(mkPage(ns.r,'right-page'));
   }}
-  FL.style.transition='none';FL.style.transform='rotateY(0deg)';FS.style.opacity='0';
+
+  FL.style.transition='none';
+  FL.style.transform='rotateY(0deg)';
+  FS.style.opacity='0';
   const deg=dir>0?-180:180;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{{
     FL.style.transition=`transform ${{MS}}ms cubic-bezier(.645,.045,.355,1)`;
     FS.style.transition=`opacity ${{MS}}ms`;
-    FL.style.transform=`rotateY(${{deg}}deg)`;FS.style.opacity='1';
+    FL.style.transform=`rotateY(${{deg}}deg)`;
+    FS.style.opacity='1';
   }}));
   setTimeout(()=>{{
-    FL.style.transition='none';FL.style.transform='rotateY(0deg)';FS.style.opacity='0';
-    cur=nx;render(nx);ui();busy=false;
+    FL.style.transition='none';
+    FL.style.transform='rotateY(0deg)';
+    FS.style.opacity='0';
+    cur=nx;
+    render(nx);
+    ui();
+    busy=false;
   }},MS+30);
 }}
 function ui(){{
