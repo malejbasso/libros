@@ -203,6 +203,11 @@ body::before{
   background:linear-gradient(160deg,#2A1608 0%,#1A0C05 100%);
 }
 
+/* blank page — left side of first spread */
+.page.blank{
+  background:var(--cream);
+}
+
 /* ── Chapter header ── */
 .chapter-header{
   border-bottom:1.5px solid var(--gold);
@@ -629,20 +634,8 @@ function buildPageEl(pageData, pageNum, side) {
   const div = document.createElement('div');
   div.className = 'page ' + side;
 
-  if (pageData.type === 'cover') {
-    div.classList.add('cover');
-    div.innerHTML = `
-      <div class="cover-frame"></div>
-      <div class="page-inner">
-        <div class="cover-badge">
-          <svg viewBox="0 0 24 24"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 17l9 5 9-5"/><path d="M3 12l9 5 9-5"/></svg>
-        </div>
-        <div class="rule"></div>
-        <h2>${META.title}</h2>
-        <div class="tagline">${META.subtitle}</div>
-        <div class="rule"></div>
-        <div class="yr">${META.year}</div>
-      </div>`;
+  if (pageData.type === 'blank') {
+    div.classList.add('blank');
     return div;
   }
 
