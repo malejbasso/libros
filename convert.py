@@ -125,26 +125,17 @@ def pdf_to_images_b64(pdf_path: str, dpi: int = DPI) -> list:
 # ──────────────────────────────────────────────
 
 def generate_html(pages_b64: list, title: str, subtitle: str, output_path: str):
-    # PAGES array:
-    # PAGES[0] = página 1 del doc  → derecha (portada sola)
-    # PAGES[1] = blank             → izquierda (vacío en primer spread)
-    # PAGES[2] = página 2          → derecha del spread 1
-    # PAGES[3] = página 3          → izquierda del spread 1
-    # ...
     if not pages_b64:
         raise RuntimeError("No hay páginas para generar")
 
+    # PAGES[0]=pág1, PAGES[1]=pág2, PAGES[2]=pág3...
+    # Spread N: left=PAGES[N*2], right=PAGES[N*2+1]
     parts = []
-    parts.append('{"type":"img","src":"data:image/png;base64,' + pages_b64[0] + '"}')
-    parts.append('{"type":"blank"}')
-    for b64 in pages_b64[1:]:
+    for b64 in pages_b64:
         parts.append('{"type":"img","src":"data:image/png;base64,' + b64 + '"}')
-
-    # Asegurar número par
     if len(parts) % 2 != 0:
         parts.append('{"type":"blank"}')
-
-    pages_json = "[\n" + ",\n".join(parts) + "\n]"
+    pages_json = "[" + ",".join(parts) + "]"
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -310,12 +301,12 @@ const FL=document.getElementById('flip-layer');
 const FF=document.getElementById('flip-front');
 const FB=document.getElementById('flip-back');
 const FS=document.getElementById('flip-shadow');
-function sp(n){{return{{r:PAGES[n*2]||null,l:PAGES[n*2+1]||null}};}}
+function sp(n){{return{{l:PAGES[n*2]||null,r:PAGES[n*2+1]||null}};}}
 function render(n){{
   const s=sp(n);
   RS.innerHTML='';LS.innerHTML='';
-  RS.appendChild(mkPage(s.r,'right-page'));
   if(!isMobile)LS.appendChild(mkPage(s.l,'left-page'));
+  RS.appendChild(mkPage(s.r,'right-page'));
 }}
 const MS=480;
 function go(dir){{
