@@ -8,18 +8,11 @@ Dependencias:
 Variables de entorno requeridas (configúralas en GitHub Secrets o en .env local):
     GOOGLE_SERVICE_ACCOUNT_JSON  — JSON de la cuenta de servicio de Google (en una sola línea)
     DRIVE_FILE_ID                — ID del archivo .docx en Google Drive
-                                   (está en la URL: drive.google.com/file/d/ESTE_ID/view)
 """
 
-import json
-import os
-import re
-import sys
-import io
-import html
+import json, os, re, sys, io, html
 from pathlib import Path
 
-# ── Dependencias opcionales — instaladas en el entorno ──
 try:
     from google.oauth2 import service_account
     from googleapiclient.discovery import build
@@ -30,26 +23,11 @@ except ImportError:
 
 try:
     from docx import Document
-    from docx.oxml.ns import qn
     HAS_DOCX = True
 except ImportError:
     HAS_DOCX = False
 
-try:
-    from bs4 import BeautifulSoup
-    HAS_BS4 = True
-except ImportError:
-    HAS_BS4 = False
-
-# ──────────────────────────────────────────────
-# CONFIG
-# ──────────────────────────────────────────────
-BOOK_META = {
-    "title":    os.environ.get("BOOK_TITLE",    "Actividades del Colegio"),
-    "subtitle": os.environ.get("BOOK_SUBTITLE", "Registro de actividades y eventos"),
-}
-
-# Pages per "chapter" before forcing a new turn page (adjust to taste)
+# Chars of visible text per page before paginating
 CHARS_PER_PAGE = 1800
 
 # ──────────────────────────────────────────────
@@ -57,133 +35,181 @@ CHARS_PER_PAGE = 1800
 # ──────────────────────────────────────────────
 
 def download_docx_from_drive(file_id: str, dest_path: str) -> None:
-    """Descarga el .docx usando una cuenta de servicio de Google."""
     if not HAS_GOOGLE:
-        raise RuntimeError("Falta google-api-python-client. Ejecuta: pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib")
-
+        raise RuntimeError("Falta google-api-python-client.")
     sa_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
     if not sa_json:
-        raise ValueError("Variable de entorno GOOGLE_SERVICE_ACCOUNT_JSON no encontrada.")
-
+        raise ValueError("Variable GOOGLE_SERVICE_ACCOUNT_JSON no encontrada.")
     sa_info = json.loads(sa_json)
     creds = service_account.Credentials.from_service_account_info(
-        sa_info,
-        scopes=["https://www.googleapis.com/auth/drive.readonly"]
-    )
-
-    service  = build("drive", "v3", credentials=creds, cache_discovery=False)
-    request  = service.files().get_media(fileId=file_id)
-    fh       = io.BytesIO()
+        sa_info, scopes=["https://www.googleapis.com/auth/drive.readonly"])
+    service = build("drive", "v3", credentials=creds, cache_discovery=False)
+    request = service.files().get_media(fileId=file_id)
+    fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
-
     done = False
     while not done:
         _, done = downloader.next_chunk()
-
     with open(dest_path, "wb") as f:
         f.write(fh.getvalue())
-
     print(f"✅ Archivo descargado: {dest_path}")
 
+# ──────────────────────────────────────────────
+# 2. EXTRACCIÓN DE METADATOS DEL WORD
+# ──────────────────────────────────────────────
+
+def extract_meta(doc) -> dict:
+    """
+    Extrae título y subtítulo del documento Word.
+    - Título: primer párrafo con estilo Title, o primer Heading 1, o primer texto no vacío.
+    - Subtítulo: primer párrafo con estilo Subtitle, o segundo párrafo no vacío si es corto.
+    """
+    title    = None
+    subtitle = None
+
+    for para in doc.paragraphs:
+        text  = para.text.strip()
+        style = para.style.name if para.style else ""
+        if not text:
+            continue
+
+        if style.lower() in ("title", "título"):
+            title = text
+            continue
+
+        if style.lower() in ("subtitle", "subtítulo", "subtitle (web)"):
+            subtitle = text
+            continue
+
+        # Fallback: first non-empty line = title
+        if title is None:
+            title = text
+            continue
+
+        # Fallback: second non-empty short line = subtitle
+        if subtitle is None and len(text) < 120:
+            subtitle = text
+            break
+
+    return {
+        "title":    title    or "Libro Digital",
+        "subtitle": subtitle or "",
+    }
 
 # ──────────────────────────────────────────────
-# 2. CONVERSIÓN DOCX → PÁGINAS JSON
+# 3. CONVERSIÓN DOCX → PÁGINAS
 # ──────────────────────────────────────────────
 
 def para_to_html(para) -> str:
-    """Convierte un párrafo python-docx a fragmento HTML."""
-    style  = para.style.name if para.style else ""
-    text   = para.text.strip()
-
+    style = para.style.name if para.style else ""
+    text  = para.text.strip()
     if not text:
         return ""
-
-    # Mapeo de estilos Word → tags HTML
-    if style.startswith("Heading 1"):
-        return f"<h1>{html.escape(text)}</h1>"
-    if style.startswith("Heading 2"):
-        return f"<h2>{html.escape(text)}</h2>"
-    if style.startswith("Heading 3"):
-        return f"<h3>{html.escape(text)}</h3>"
-    if style in ("Quote", "Intense Quote"):
-        return f"<blockquote>{html.escape(text)}</blockquote>"
-
-    # Inline formatting (bold/italic/underline)
+    if style.startswith("Heading 1"): return f"<h1>{html.escape(text)}</h1>"
+    if style.startswith("Heading 2"): return f"<h2>{html.escape(text)}</h2>"
+    if style.startswith("Heading 3"): return f"<h3>{html.escape(text)}</h3>"
+    if style in ("Quote", "Intense Quote"): return f"<blockquote>{html.escape(text)}</blockquote>"
     parts = []
     for run in para.runs:
         t = html.escape(run.text)
-        if run.bold:   t = f"<strong>{t}</strong>"
-        if run.italic: t = f"<em>{t}</em>"
+        if run.bold:      t = f"<strong>{t}</strong>"
+        if run.italic:    t = f"<em>{t}</em>"
         if run.underline: t = f"<u>{t}</u>"
         parts.append(t)
     inner = "".join(parts) or html.escape(text)
-
-    # List styles
     if "List" in style:
         return f"<li>{inner}</li>"
-
     return f"<p>{inner}</p>"
 
-
 def table_to_html(table) -> str:
-    rows_html = []
+    rows = []
     for i, row in enumerate(table.rows):
-        cells = []
-        for cell in row.cells:
-            tag = "th" if i == 0 else "td"
-            cells.append(f"<{tag}>{html.escape(cell.text.strip())}</{tag}>")
-        rows_html.append("<tr>" + "".join(cells) + "</tr>")
-    return "<table>" + "".join(rows_html) + "</table>"
+        cells = "".join(
+            f"<{'th' if i==0 else 'td'}>{html.escape(c.text.strip())}</{'th' if i==0 else 'td'}>"
+            for c in row.cells
+        )
+        rows.append(f"<tr>{cells}</tr>")
+    return "<table>" + "".join(rows) + "</table>"
 
+def paginate_html(content: str, max_chars: int) -> list:
+    tag_pat = re.compile(
+        r'(<(?:p|h[123]|blockquote|ul|li|table)[^>]*>.*?</(?:p|h[123]|blockquote|ul|table)>)',
+        re.DOTALL)
+    elements = [e for e in tag_pat.split(content) if e.strip()]
+    chunks, current, count = [], [], 0
+    for el in elements:
+        length = len(re.sub(r'<[^>]+>', '', el))
+        if count + length > max_chars and current:
+            chunks.append("".join(current))
+            current, count = [el], length
+        else:
+            current.append(el)
+            count += length
+    if current:
+        chunks.append("".join(current))
+    return chunks or [content]
 
-def docx_to_pages(docx_path: str) -> list:
+def docx_to_pages(docx_path: str) -> tuple:
     """
-    Convierte el .docx en una lista de paginas para el libro.
-    - NO genera portada: el contenido del Word se muestra tal cual.
-    - Cada Heading 1 fuerza una nueva pagina (incluido en el contenido).
-    - Una pagina en blanco al inicio alinea correctamente el spread de dos paginas.
+    Returns (pages_list, meta_dict).
+    - No generated cover — document content starts on page 1 (right side).
+    - Heading 1 forces a new page, title included in content.
+    - Even number of pages ensured for proper spread display.
     """
     if not HAS_DOCX:
-        raise RuntimeError("Falta python-docx. Ejecuta: pip install python-docx")
+        raise RuntimeError("Falta python-docx.")
 
-    doc = Document(docx_path)
+    doc   = Document(docx_path)
+    meta  = extract_meta(doc)
     pages = []
-
-    # Pagina en blanco a la izquierda del primer spread,
-    # asi la primera pagina de contenido queda a la derecha (como libro real)
-    pages.append({"type": "blank"})
-
     buffer = []
+    in_list = False
 
-    def flush_buffer():
+    # Track which paragraphs are title/subtitle (first two non-empty) to skip them
+    # from the main content — they'll show in the topbar instead
+    skip_indices = set()
+    non_empty_count = 0
+    for i, para in enumerate(doc.paragraphs):
+        if para.text.strip():
+            non_empty_count += 1
+            if non_empty_count <= 2:
+                style = para.style.name.lower() if para.style else ""
+                if any(s in style for s in ("title", "subtitle", "título", "subtítulo")):
+                    skip_indices.add(i)
+            else:
+                break
+
+    def flush():
         if not buffer:
             return
-        combined = "".join(buffer)
-        chunks = paginate_html(combined, CHARS_PER_PAGE)
-        for chunk in chunks:
+        for chunk in paginate_html("".join(buffer), CHARS_PER_PAGE):
             pages.append({"type": "content", "content": chunk})
         buffer.clear()
 
-    in_list = False
-
+    para_index = 0
     for block in doc.element.body:
         tag = block.tag.split("}")[-1] if "}" in block.tag else block.tag
 
         if tag == "p":
             from docx.text.paragraph import Paragraph as DocxPara
-            para = DocxPara(block, doc)
+            para  = DocxPara(block, doc)
             style = para.style.name if para.style else ""
             text  = para.text.strip()
+
+            # Skip title/subtitle paragraphs (shown in topbar)
+            if para_index in skip_indices:
+                para_index += 1
+                continue
+            para_index += 1
 
             if not text:
                 continue
 
-            # Heading 1 -> nueva pagina, heading incluido en el contenido
             if style.startswith("Heading 1"):
                 if in_list:
                     buffer.append("</ul>")
                     in_list = False
-                flush_buffer()
+                flush()
                 buffer.append(f"<h1>{html.escape(text)}</h1>")
                 continue
 
@@ -199,7 +225,6 @@ def docx_to_pages(docx_path: str) -> list:
                 if in_list:
                     buffer.append("</ul>")
                     in_list = False
-
             buffer.append(fragment)
 
         elif tag == "tbl":
@@ -209,128 +234,69 @@ def docx_to_pages(docx_path: str) -> list:
                 buffer.append("</ul>")
                 in_list = False
             buffer.append(table_to_html(tbl))
+            para_index += 1
 
     if in_list:
         buffer.append("</ul>")
-    flush_buffer()
+    flush()
 
-    # Contraportada final
-    pages.append({"type": "back"})
+    # Ensure even number of pages so spreads are complete
+    if len(pages) % 2 != 0:
+        pages.append({"type": "blank"})
 
-    return pages
-
-
-def paginate_html(html_content: str, max_chars: int) -> list:
-    """Divide un bloque HTML largo en trozos de max_chars caracteres sin cortar tags."""
-    # Dividir por párrafos/headings preservando el HTML
-    tag_pattern = re.compile(r'(<(?:p|h[123]|blockquote|ul|table)[^>]*>.*?</(?:p|h[123]|blockquote|ul|table)>)', re.DOTALL)
-    parts = tag_pattern.split(html_content)
-    # Filtrar texto suelto
-    elements = [p for p in parts if p.strip()]
-
-    chunks  = []
-    current = []
-    count   = 0
-
-    for el in elements:
-        length = len(re.sub(r'<[^>]+>', '', el))  # solo contar texto visible
-        if count + length > max_chars and current:
-            chunks.append("".join(current))
-            current = [el]
-            count   = length
-        else:
-            current.append(el)
-            count += length
-
-    if current:
-        chunks.append("".join(current))
-
-    return chunks or [html_content]
-
+    return pages, meta
 
 # ──────────────────────────────────────────────
-# 3. INYECCIÓN EN index.html
+# 4. INYECCIÓN EN index.html
 # ──────────────────────────────────────────────
 
-def inject_pages_into_html(pages: list, template_path: str, output_path: str) -> None:
-    """Reemplaza el placeholder __PAGES_JSON__ en el HTML con los datos reales."""
+def inject(pages: list, meta: dict, template_path: str, output_path: str) -> None:
     with open(template_path, "r", encoding="utf-8") as f:
-        template = f.read()
+        tmpl = f.read()
 
-    pages_json = json.dumps(pages, ensure_ascii=False, indent=2)
-    output = template.replace("__PAGES_JSON__", pages_json)
+    out = tmpl.replace("__PAGES_JSON__", json.dumps(pages, ensure_ascii=False, indent=2))
 
-    # Actualizar meta — reemplaza los valores en el objeto META del JS
-    output = output.replace(
+    # Update title and subtitle in JS META object
+    out = out.replace(
         'title:    "Actividades del Colegio"',
-        f'title:    "{BOOK_META["title"]}"'
+        f'title:    "{meta["title"]}"'
     )
-    output = output.replace(
+    out = out.replace(
         'subtitle: "Registro de actividades y eventos"',
-        f'subtitle: "{BOOK_META["subtitle"]}"'
+        f'subtitle: "{meta["subtitle"]}"'
     )
-    # También actualizar el <title> del HTML
-    output = output.replace(
-        '<title>Libro Digital del Colegio</title>',
-        f'<title>{BOOK_META["title"]}</title>'
+    # Update HTML <title>
+    out = re.sub(r'<title>.*?</title>', f'<title>{meta["title"]}</title>', out)
+    # Update topbar text directly too
+    out = out.replace(
+        '>Actividades del Colegio<',
+        f'>{meta["title"]}<'
+    )
+    out = out.replace(
+        '>Registro de actividades y eventos<',
+        f'>{meta["subtitle"]}<'
     )
 
     with open(output_path, "w", encoding="utf-8") as f:
-        f.write(output)
+        f.write(out)
 
     print(f"✅ Libro generado: {output_path}  ({len(pages)} páginas)")
-
+    print(f"   Título: {meta['title']}")
+    print(f"   Subtítulo: {meta['subtitle']}")
 
 # ──────────────────────────────────────────────
-# 4. MODO DEMO (sin Drive) — genera páginas de ejemplo
+# 5. MODO DEMO
 # ──────────────────────────────────────────────
 
-def generate_demo_pages() -> list:
-    """Genera páginas de ejemplo para ver el libro sin Drive/docx."""
-    pages = [{"type": "cover"}]
-    activities = [
-        {
-            "title": "Día del Libro",
-            "date":  "12 de abril, 2025",
-            "body":  "<p>Los alumnos de 5° básico organizaron una feria del libro en el patio central. Cada curso presentó su libro favorito con un afiche hecho a mano.</p><p>Participaron más de 120 estudiantes y se donaron 45 libros a la biblioteca del colegio.</p><blockquote>\"Leer es volar sin moverse del lugar.\"</blockquote>"
-        },
-        {
-            "title": "Taller de Huerto Escolar",
-            "date":  "3 de mayo, 2025",
-            "body":  "<p>Con apoyo de padres voluntarios, los alumnos de 3° básico aprendieron a sembrar tomates, lechugas y hierbas aromáticas en el huerto del colegio.</p><p>Cada estudiante se llevó una pequeña maceta con semillas para continuar el aprendizaje en casa.</p>"
-        },
-        {
-            "title": "Olimpiadas Matemáticas",
-            "date":  "20 de mayo, 2025",
-            "body":  "<p>Se realizó la segunda versión de las Olimpiadas Matemáticas internas. Participaron 8 equipos de distintos cursos.</p><table><tr><th>Lugar</th><th>Equipo</th><th>Puntos</th></tr><tr><td>1°</td><td>Los Calculadores</td><td>95</td></tr><tr><td>2°</td><td>Pi & Cía</td><td>87</td></tr><tr><td>3°</td><td>Suma y Sigue</td><td>81</td></tr></table>"
-        },
-        {
-            "title": "Visita al Museo Nacional",
-            "date":  "10 de junio, 2025",
-            "body":  "<p>Los alumnos de 7° y 8° básico visitaron el Museo Nacional de Historia Natural en Santiago. El recorrido incluyó las salas de paleontología y biodiversidad.</p><p>Los estudiantes realizaron un taller de dibujo científico guiados por los educadores del museo.</p>"
-        },
-        {
-            "title": "Festival de la Primavera",
-            "date":  "21 de septiembre, 2025",
-            "body":  "<p>El Festival de la Primavera reunió a todos los cursos en el patio para celebrar el inicio de la estación. Hubo presentaciones de danza, música y poesía.</p><p>El evento cerró con una suelta de globos elaborados por los propios estudiantes con materiales reciclados.</p>"
-        },
+def demo_pages() -> tuple:
+    pages = [
+        {"type": "content", "content": "<h1>Día del Libro</h1><p>Los alumnos de 5° básico organizaron una feria del libro en el patio central.</p><blockquote>\"Leer es volar sin moverse del lugar.\"</blockquote>"},
+        {"type": "content", "content": "<h1>Huerto Escolar</h1><p>Con apoyo de padres voluntarios, los alumnos aprendieron a sembrar tomates y lechugas.</p>"},
+        {"type": "content", "content": "<h1>Olimpiadas Matemáticas</h1><table><tr><th>Lugar</th><th>Equipo</th><th>Puntos</th></tr><tr><td>1°</td><td>Los Calculadores</td><td>95</td></tr></table>"},
+        {"type": "content", "content": "<h1>Festival de la Primavera</h1><p>El Festival reunió a todos los cursos para celebrar el inicio de la estación.</p>"},
     ]
-
-    for i, act in enumerate(activities):
-        pages.append({
-            "type":           "content",
-            "chapter":        act["title"],
-            "chapter_label":  f"Actividad {i+1}  ·  {act['date']}",
-            "content":        act["body"]
-        })
-
-    if len(pages) % 2 == 0:
-        pages.append({"type": "back"})
-    else:
-        pages.append({"type": "back"})
-
-    return pages
-
+    meta = {"title": "Actividades del Colegio", "subtitle": "Registro de actividades y eventos"}
+    return pages, meta
 
 # ──────────────────────────────────────────────
 # MAIN
@@ -339,27 +305,23 @@ def generate_demo_pages() -> list:
 def main():
     base_dir      = Path(__file__).parent
     template_path = base_dir / "index.html"
-    output_path   = base_dir / "index.html"   # sobreescribe el template in-place
+    output_path   = base_dir / "index.html"
     tmp_docx      = base_dir / "tmp_document.docx"
 
-    file_id = os.environ.get("DRIVE_FILE_ID")
+    file_id   = os.environ.get("DRIVE_FILE_ID")
     demo_mode = "--demo" in sys.argv or not file_id
 
     if demo_mode:
-        print("ℹ️  Modo demo (sin Google Drive). Usa DRIVE_FILE_ID para conectar tu documento.")
-        pages = generate_demo_pages()
+        print("ℹ️  Modo demo.")
+        pages, meta = demo_pages()
     else:
-        print(f"📥 Descargando documento desde Drive (ID: {file_id})…")
+        print(f"📥 Descargando documento (ID: {file_id})…")
         download_docx_from_drive(file_id, str(tmp_docx))
-
-        print("📖 Convirtiendo a páginas…")
-        pages = docx_to_pages(str(tmp_docx))
-
-        # Limpiar archivo temporal
+        print("📖 Convirtiendo…")
+        pages, meta = docx_to_pages(str(tmp_docx))
         tmp_docx.unlink(missing_ok=True)
 
-    inject_pages_into_html(pages, str(template_path), str(output_path))
-
+    inject(pages, meta, str(template_path), str(output_path))
 
 if __name__ == "__main__":
     main()
