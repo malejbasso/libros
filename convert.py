@@ -170,17 +170,19 @@ def generate_html(
 
     pages_html = ""
 
-    # Primera página en blanco
-    pages_html += '<div class="page blank"></div>\n'
+    # Primera página blanca
+    pages_html += '''
+    <div class="page blank"></div>
+    '''
 
     # Páginas reales
     for p in pages_b64:
 
         pages_html += f'''
-<div class="page">
-    <img src="data:image/png;base64,{p}">
-</div>
-'''
+        <div class="page">
+            <img src="data:image/png;base64,{p}">
+        </div>
+        '''
 
     html = f"""
 <!DOCTYPE html>
@@ -197,7 +199,7 @@ def generate_html(
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 
-<script src="turn.js"></script>
+<script src="./turn.js"></script>
 
 <link rel="preconnect"
       href="https://fonts.googleapis.com">
@@ -216,6 +218,7 @@ def generate_html(
 html,body{{
     width:100%;
     height:100%;
+
     overflow:hidden;
 
     background:#1b1008;
@@ -236,7 +239,7 @@ html,body{{
     align-items:center;
     justify-content:space-between;
 
-    padding:0 30px;
+    padding:0 25px;
 
     background:rgba(0,0,0,.55);
 
@@ -247,17 +250,17 @@ html,body{{
 
 #toolbar h1{{
     color:white;
-    font-size:20px;
+    font-size:18px;
 }}
 
 #toolbar .sub{{
-    color:#c9c9c9;
-    font-size:13px;
+    color:#ccc;
+    font-size:12px;
 }}
 
 #page-number{{
     color:#E0C27A;
-    font-size:18px;
+    font-size:16px;
 }}
 
 #container{{
@@ -267,6 +270,8 @@ html,body{{
     display:flex;
     align-items:center;
     justify-content:center;
+
+    padding-top:40px;
 }}
 
 #book{{
@@ -292,7 +297,6 @@ html,body{{
     background:white;
 
     user-select:none;
-
     pointer-events:none;
 }}
 
@@ -307,6 +311,10 @@ html,body{{
 
 @media(max-width:1100px){{
 
+    #container{{
+        padding-top:50px;
+    }}
+
     #book{{
         width:340px !important;
         height:480px !important;
@@ -315,6 +323,10 @@ html,body{{
     .page{{
         width:340px !important;
         height:480px !important;
+    }}
+
+    .page img{{
+        object-fit:contain;
     }}
 }}
 
@@ -347,23 +359,27 @@ html,body{{
 
 </div>
 
-<audio id="flipSound" preload="auto">
-    <source src="page-flip.mp3" type="audio/mpeg">
-</audio>
-
 <script>
-
-const sound =
-    document.getElementById('flipSound');
 
 const isMobile =
     window.innerWidth <= 1100;
 
+const bookWidth =
+    isMobile ? 340 : 1040;
+
+const bookHeight =
+    isMobile ? 480 : 735;
+
+$('#book').css({{
+    width: bookWidth + 'px',
+    height: bookHeight + 'px'
+}});
+
 $('#book').turn({{
 
-    width: isMobile ? 340 : 1040,
+    width: bookWidth,
 
-    height: isMobile ? 480 : 735,
+    height: bookHeight,
 
     autoCenter: true,
 
@@ -373,29 +389,81 @@ $('#book').turn({{
 
     elevation: 50,
 
-    duration: 900
+    duration: 1200,
+
+    display: isMobile ? 'single' : 'double'
 
 }});
 
-$('#book').bind('turning', function(event, page){{
+
+// ─────────────────────────────
+// SONIDO HOJA
+// ─────────────────────────────
+
+function playFlipSound(){{
 
     try {{
-        sound.currentTime = 0;
-        sound.play();
-    }}
-    catch(e){{}}
+
+        const ctx =
+            new(window.AudioContext || window.webkitAudioContext)();
+
+        const buffer =
+            ctx.createBuffer(1, 22050, 22050);
+
+        const data =
+            buffer.getChannelData(0);
+
+        for(let i=0;i<data.length;i++){{
+
+            data[i] =
+                (Math.random()*2-1)
+                *
+                Math.exp(-i/5000);
+        }}
+
+        const source =
+            ctx.createBufferSource();
+
+        source.buffer = buffer;
+
+        const gain =
+            ctx.createGain();
+
+        gain.gain.value = 0.04;
+
+        source.connect(gain);
+
+        gain.connect(ctx.destination);
+
+        source.start();
+
+    }} catch(e){{}}
+}}
+
+
+// ─────────────────────────────
+// CAMBIO PÁGINA
+// ─────────────────────────────
+
+$('#book').bind('turning', function(event, page){{
+
+    playFlipSound();
 
     let realPage = page;
 
-    // Ajustar numeración porque existe página blanca inicial
     if(realPage > 1){{
-        realPage = realPage - 1;
+        realPage--;
     }}
 
     document.getElementById('page-number')
         .innerText =
             'Página ' + realPage;
 }});
+
+
+// ─────────────────────────────
+// TECLADO
+// ─────────────────────────────
 
 document.addEventListener('keydown', e => {{
 
@@ -404,6 +472,35 @@ document.addEventListener('keydown', e => {{
     }}
 
     if(e.key === 'ArrowLeft'){{
+        $('#book').turn('previous');
+    }}
+
+}});
+
+
+// ─────────────────────────────
+// TOUCH MÓVIL
+// ─────────────────────────────
+
+let touchStartX = 0;
+
+document.addEventListener('touchstart', e => {{
+
+    touchStartX =
+        e.changedTouches[0].screenX;
+
+}});
+
+document.addEventListener('touchend', e => {{
+
+    const endX =
+        e.changedTouches[0].screenX;
+
+    if(touchStartX - endX > 50){{
+        $('#book').turn('next');
+    }}
+
+    if(endX - touchStartX > 50){{
         $('#book').turn('previous');
     }}
 
