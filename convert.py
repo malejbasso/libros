@@ -491,6 +491,7 @@ const isMobile =
 
 function spread(n){{
 
+  // Primera vista
   if(n === 0){{
     return {{
       left:null,
@@ -498,9 +499,16 @@ function spread(n){{
     }};
   }}
 
+  // Spread reales
+  const leftIndex =
+    (n * 2);
+
+  const rightIndex =
+    (n * 2) + 1;
+
   return {{
-    left:PAGES[(n*2)-1] || null,
-    right:PAGES[(n*2)] || null
+    left:PAGES[leftIndex] || null,
+    right:PAGES[rightIndex] || null
   }};
 }}
 
