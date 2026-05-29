@@ -251,6 +251,9 @@ html,body{{
     0 0 30px rgba(0,0,0,.15);
 
   border-radius:2px;
+  transition:
+	  transform .25s ease,
+	  box-shadow .25s ease;
 }}
 
 .left{{
@@ -497,16 +500,9 @@ function spread(n){{
     }};
   }}
 
-  // Spread reales
-  const leftIndex =
-    (n * 2);
-
-  const rightIndex =
-    (n * 2) + 1;
-
   return {{
-    left:PAGES[leftIndex] || null,
-    right:PAGES[rightIndex] || null
+    left:PAGES[(n*2)-1] || null,
+    right:PAGES[(n*2)] || null
   }};
 }}
 
@@ -638,7 +634,7 @@ function go(dir){{
       const p = makePage(ns.left,'left');
 
       p.style.cssText =
-        'position:absolute;inset:0;transform:scaleX(-1)';
+        'position:absolute;inset:0;';
 
       back.appendChild(p);
     }}
@@ -663,7 +659,7 @@ function go(dir){{
       const p = makePage(ns.right,'right');
 
       p.style.cssText =
-        'position:absolute;inset:0;transform:scaleX(-1)';
+        'position:absolute;inset:0;';
 
       back.appendChild(p);
     }}
@@ -680,9 +676,9 @@ function go(dir){{
         'transform 650ms cubic-bezier(.645,.045,.355,1)';
 
       flip.style.transform =
-        dir > 0
-          ? 'rotateY(-180deg)'
-          : 'rotateY(180deg)';
+		  dir > 0
+			? 'rotateY(-18deg) translateX(-12px)'
+			: 'rotateY(18deg) translateX(12px)';
 
     }});
   }});
