@@ -4,394 +4,419 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Libro Digital del Colegio</title>
+<script src="https://cdn.jsdelivr.net/npm/turn.js@4.1.0/turn.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Lora:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-:root{
-  --cream:#F7F0E0;
-  --cream2:#EDE3CE;
-  --cream3:#E0D5BE;
-  --brown:#3D2B1F;
-  --brown2:#6B4C35;
-  --gold:#B8862A;
-  --gold2:#D4A843;
-  --gold3:#F0C96A;
-  --ink:#1E1208;
-  --muted:#8A6F52;
-  --pw:420px;
-  --ph:580px;
-}
+  :root {
+    --cream:    #F8F3E8;
+    --cream-dk: #EDE6D3;
+    --brown:    #4A3728;
+    --brown-lt: #7A6152;
+    --gold:     #C9923A;
+    --gold-lt:  #E8B96A;
+    --ink:      #2C1F14;
+    --muted:    #8A7060;
+    --shadow:   rgba(44,31,20,0.35);
+    --page-w:   420px;
+    --page-h:   580px;
+  }
 
-html,body{
-  height:100%;
-  background:#1A0F08;
-  font-family:'Lora',Georgia,serif;
-  color:var(--ink);
-  overflow:hidden;
-}
+  html, body {
+    height: 100%;
+    background: var(--brown);
+    background-image:
+      radial-gradient(ellipse at 20% 20%, #6B4C38 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, #3A2518 0%, transparent 50%);
+    font-family: 'Source Serif 4', Georgia, serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
 
-/* wood grain background */
-body::before{
-  content:'';
-  position:fixed;inset:0;z-index:0;
-  background:
-    repeating-linear-gradient(92deg,transparent,transparent 2px,rgba(255,255,255,.012) 2px,rgba(255,255,255,.012) 4px),
-    radial-gradient(ellipse at 30% 40%,#3D2010 0%,#1A0F08 60%),
-    radial-gradient(ellipse at 70% 70%,#2A1608 0%,#120A04 70%);
-  pointer-events:none;
-}
+  /* ── Top bar ── */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 52px;
+    background: rgba(44,31,20,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(201,146,58,0.3);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+  }
 
-/* ── Top bar ── */
-#topbar{
-  position:fixed;top:0;left:0;right:0;z-index:200;
-  height:54px;
-  background:rgba(26,15,8,.96);
-  border-bottom:1px solid rgba(184,134,42,.25);
-  display:flex;align-items:center;justify-content:space-between;
-  padding:0 28px;
-}
-#topbar h1{
-  font-family:'Playfair Display',serif;
-  font-size:16px;font-weight:700;
-  color:var(--gold3);letter-spacing:.06em;
-}
-#topbar .sub{font-size:11px;color:var(--muted);font-style:italic;margin-top:1px}
-#page-counter{
-  font-size:12px;color:var(--gold2);
-  font-family:'Playfair Display',serif;
-  letter-spacing:.08em;
-}
+  #topbar h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--gold-lt);
+    letter-spacing: 0.04em;
+  }
 
-/* ── Stage ── */
-#stage{
-  position:relative;z-index:1;
-  height:100vh;
-  display:flex;align-items:center;justify-content:center;
-  padding-top:54px;
-  perspective:2200px;
-  perspective-origin:50% 45%;
-}
+  #topbar .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 1px;
+  }
 
-/* ── Book wrapper ── */
-#book-wrap{
-  position:relative;
-  width:calc(var(--pw)*2);
-  height:var(--ph);
-  transform-style:preserve-3d;
-  filter:drop-shadow(0 32px 64px rgba(0,0,0,.8)) drop-shadow(0 8px 16px rgba(0,0,0,.6));
-}
+  #page-counter {
+    font-size: 13px;
+    color: var(--gold-lt);
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 0.06em;
+  }
 
-/* subtle tilt */
-#book-wrap{
-  transform: rotateX(3deg);
-}
+  /* ── Stage ── */
+  #stage {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 52px;
+  }
 
-/* spine center line */
-#book-wrap::after{
-  content:'';
-  position:absolute;
-  left:50%;top:0;bottom:0;
-  width:4px;
-  margin-left:-2px;
-  background:linear-gradient(to right,rgba(26,15,8,.6),rgba(90,55,30,.4),rgba(26,15,8,.6));
-  z-index:50;
-  pointer-events:none;
-}
+  /* ── Book ── */
+  #book {
+    width: calc(var(--page-w) * 2);
+    height: var(--page-h);
+    position: relative;
+    filter: drop-shadow(0 24px 48px var(--shadow));
+  }
 
-/* ── Page base ── */
-.page{
-  position:absolute;
-  width:var(--pw);
-  height:var(--ph);
-  top:0;
-  background:var(--cream);
-  backface-visibility:hidden;
-  transform-style:preserve-3d;
-  overflow:hidden;
-}
-.page.left-page  { left:0; transform-origin:right center; }
-.page.right-page { left:var(--pw); transform-origin:left center; }
+  /* ── Pages ── */
+  .page {
+    width: var(--page-w);
+    height: var(--page-h);
+    background: var(--cream);
+    overflow: hidden;
+    position: relative;
+  }
 
-/* page texture */
-.page::before{
-  content:'';
-  position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
-  opacity:.6;
-}
+  /* Page texture overlay */
+  .page::before {
+    content: '';
+    position: absolute; inset: 0; z-index: 0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23F8F3E8'/%3E%3Ccircle cx='1' cy='1' r='0.4' fill='%23D4C9B0' opacity='0.3'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
 
-/* edge shadows */
-.page.left-page::after{
-  content:'';
-  position:absolute;top:0;right:0;width:28px;height:100%;
-  background:linear-gradient(to left,rgba(30,18,8,.14),transparent);
-  z-index:2;pointer-events:none;
-}
-.page.right-page::before{
-  content:'';
-  position:absolute;top:0;left:0;width:28px;height:100%;
-  background:linear-gradient(to right,rgba(30,18,8,.1),transparent);
-  z-index:2;pointer-events:none;
-}
+  /* Left pages have spine shadow */
+  .page.--left .page-inner { border-right: 2px solid rgba(74,55,40,0.12); }
+  .page.--right .page-inner { border-left: 2px solid rgba(74,55,40,0.08); }
 
-/* bottom edge shadow */
-.page::after{
-  content:'';
-  position:absolute;bottom:0;left:0;right:0;height:20px;
-  background:linear-gradient(to top,rgba(30,18,8,.08),transparent);
-  z-index:2;pointer-events:none;
-}
-.page.left-page::after{
-  /* override — left has right edge shadow */
-}
+  .page-inner {
+    position: relative; z-index: 1;
+    padding: 36px 32px 28px;
+    height: 100%;
+    display: flex; flex-direction: column;
+    gap: 0;
+  }
 
-/* ── Page inner content ── */
-.page-inner{
-  position:relative;z-index:1;
-  padding:38px 34px 30px;
-  height:100%;
-  display:flex;flex-direction:column;
-}
+  /* ── Cover page ── */
+  .cover {
+    background: var(--brown) !important;
+    background-image:
+      radial-gradient(ellipse at 50% 30%, #6B4C38 0%, #3A2518 60%) !important;
+  }
 
-/* ── Cover page ── */
-.page.cover{
-  background:linear-gradient(160deg,#4A2E18 0%,#2A1608 50%,#1A0C05 100%);
-}
-.cover .page-inner{
-  align-items:center;justify-content:center;
-  text-align:center;gap:18px;
-}
-.cover-frame{
-  position:absolute;inset:16px;
-  border:1px solid rgba(184,134,42,.3);
-  pointer-events:none;
-}
-.cover-frame::before{
-  content:'';
-  position:absolute;inset:6px;
-  border:1px solid rgba(184,134,42,.15);
-}
-.cover-badge{
-  width:70px;height:70px;
-  border:2px solid var(--gold);
-  border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-}
-.cover-badge svg{width:34px;height:34px;stroke:var(--gold);fill:none;stroke-width:1.5}
-.cover h2{
-  font-family:'Playfair Display',serif;
-  font-size:28px;font-weight:700;
-  color:var(--cream);line-height:1.15;
-  text-shadow:0 2px 12px rgba(0,0,0,.5);
-}
-.cover .rule{
-  width:80px;height:1px;
-  background:linear-gradient(to right,transparent,var(--gold),transparent);
-}
-.cover .tagline{
-  font-size:12px;color:var(--gold2);
-  font-style:italic;letter-spacing:.08em;
-  padding:6px 0;
-}
-.cover .yr{font-size:11px;color:var(--muted);letter-spacing:.12em;}
+  .cover .page-inner {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+    padding: 48px 40px;
+  }
 
-/* ── Back cover ── */
-.page.back{
-  background:linear-gradient(160deg,#2A1608 0%,#1A0C05 100%);
-}
+  .cover-ornament {
+    width: 64px; height: 64px;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto;
+  }
 
-/* ── Chapter header ── */
-.chapter-header{
-  border-bottom:1.5px solid var(--gold);
-  padding-bottom:10px;margin-bottom:16px;
-}
-.chapter-label{
-  font-size:10px;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--gold);margin-bottom:3px;
-}
-.chapter-title{
-  font-family:'Playfair Display',serif;
-  font-size:20px;font-weight:700;
-  color:var(--brown);line-height:1.2;
-}
+  .cover-ornament svg { width: 32px; height: 32px; fill: var(--gold); }
 
-/* ── Page number ── */
-.page-num{
-  position:absolute;bottom:14px;
-  font-size:11px;color:var(--muted);
-  letter-spacing:.08em;font-style:italic;
-}
-.page.left-page  .page-num{left:34px;}
-.page.right-page .page-num{right:34px;}
+  .cover h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.2;
+    margin-top: 8px;
+  }
 
-/* ── Content ── */
-.page-content{
-  flex:1;overflow:hidden;
-  font-size:13.5px;line-height:1.78;color:var(--ink);
-}
-.page-content h1,.page-content h2,.page-content h3{
-  font-family:'Playfair Display',serif;color:var(--brown);margin:12px 0 5px;
-}
-.page-content h1{font-size:18px;}
-.page-content h2{font-size:15px;border-bottom:1px solid var(--cream3);padding-bottom:3px;}
-.page-content h3{font-size:13px;font-style:italic;}
-.page-content p{margin-bottom:10px;}
-.page-content img{max-width:100%;border-radius:3px;border:1px solid var(--cream3);margin:7px 0;}
-.page-content ul,.page-content ol{padding-left:18px;margin-bottom:10px;}
-.page-content li{margin-bottom:4px;}
-.page-content blockquote{
-  border-left:3px solid var(--gold);padding:6px 12px;margin:10px 0;
-  color:var(--brown2);font-style:italic;font-size:13px;
-  background:var(--cream2);border-radius:0 3px 3px 0;
-}
-.page-content table{width:100%;font-size:12px;border-collapse:collapse;margin:8px 0;}
-.page-content th{
-  background:var(--cream2);font-weight:600;padding:5px 8px;
-  border:1px solid var(--cream3);text-align:left;
-  font-family:'Playfair Display',serif;font-size:11px;color:var(--brown);
-}
-.page-content td{padding:4px 8px;border:1px solid rgba(61,43,31,.1);}
+  .cover .tagline {
+    font-size: 13px;
+    color: var(--gold-lt);
+    font-style: italic;
+    letter-spacing: 0.06em;
+    border-top: 1px solid rgba(201,146,58,0.4);
+    border-bottom: 1px solid rgba(201,146,58,0.4);
+    padding: 8px 24px;
+  }
 
-/* ════════════════════════════════════
-   FLIP ENGINE
-   ════════════════════════════════════ */
+  .cover .year {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
 
-/* The flipping half — cloned page that animates */
-#flip-layer{
-  position:absolute;
-  width:var(--pw);
-  height:var(--ph);
-  top:0;
-  transform-style:preserve-3d;
-  pointer-events:none;
-  z-index:100;
-}
-#flip-layer.flip-right{ left:var(--pw); transform-origin:left center; }
-#flip-layer.flip-left { left:0;         transform-origin:right center; }
+  .cover-divider {
+    width: 80px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+  }
 
-#flip-front,#flip-back{
-  position:absolute;inset:0;
-  backface-visibility:hidden;
-  overflow:hidden;
-}
-#flip-back{ transform:rotateY(180deg); }
+  /* ── Back cover ── */
+  .back-cover { background: var(--brown) !important; }
 
-/* shadow gradient on flipping page */
-#flip-shadow{
-  position:absolute;inset:0;z-index:10;pointer-events:none;
-  background:linear-gradient(to left,rgba(0,0,0,.25),transparent 60%);
-  opacity:0;
-  transition:opacity .05s;
-}
+  /* ── Chapter header ── */
+  .chapter-header {
+    border-bottom: 1.5px solid var(--gold);
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
 
-/* ── Navigation ── */
-#nav{
-  position:fixed;bottom:24px;left:0;right:0;z-index:200;
-  display:flex;align-items:center;justify-content:center;gap:20px;
-}
-.nav-btn{
-  background:rgba(26,15,8,.9);
-  border:1px solid rgba(184,134,42,.35);
-  color:var(--gold2);
-  width:46px;height:46px;border-radius:50%;
-  font-size:20px;cursor:pointer;
-  display:flex;align-items:center;justify-content:center;
-  transition:all .2s;
-  position:relative;
-}
-.nav-btn:hover:not(:disabled){
-  background:rgba(61,43,31,.95);
-  border-color:var(--gold);
-  color:var(--gold3);
-}
-.nav-btn:active:not(:disabled){transform:scale(.93);}
-.nav-btn:disabled{opacity:.25;cursor:not-allowed;}
-.nav-btn .hint{
-  position:absolute;bottom:-20px;
-  font-size:10px;color:var(--muted);
-  font-family:'Lora',serif;font-style:italic;
-  white-space:nowrap;letter-spacing:.04em;
-}
-#page-info{
-  font-size:13px;color:var(--gold2);
-  font-family:'Playfair Display',serif;
-  min-width:80px;text-align:center;
-  letter-spacing:.05em;
-}
+  .chapter-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 400;
+    margin-bottom: 3px;
+  }
 
-/* ── Loading ── */
-#loading{
-  position:fixed;inset:0;z-index:300;
-  background:#1A0F08;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;
-  transition:opacity .6s;
-}
-#loading.hidden{opacity:0;pointer-events:none;}
-.spinner{
-  width:36px;height:36px;
-  border:2px solid rgba(184,134,42,.2);border-top-color:var(--gold);
-  border-radius:50%;animation:spin .85s linear infinite;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-#loading p{
-  font-family:'Playfair Display',serif;
-  color:var(--gold2);font-style:italic;font-size:15px;
-}
+  .chapter-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brown);
+    line-height: 1.2;
+  }
 
-/* ── Mobile ── */
-@media(max-width:880px){
-  :root{--pw:300px;--ph:440px;}
-  #book-wrap{width:var(--pw)!important;}
-  .page.right-page{display:none;}
-  #book-wrap::after{display:none;}
-}
+  /* ── Page number ── */
+  .page-num {
+    position: absolute;
+    bottom: 16px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    font-style: italic;
+  }
+  .page.--left .page-num  { left: 32px; }
+  .page.--right .page-num { right: 32px; }
+
+  /* ── Content ── */
+  .page-content {
+    flex: 1;
+    overflow: hidden;
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--ink);
+  }
+
+  .page-content h1, .page-content h2, .page-content h3 {
+    font-family: 'Playfair Display', serif;
+    color: var(--brown);
+    margin: 14px 0 6px;
+  }
+
+  .page-content h1 { font-size: 18px; }
+  .page-content h2 { font-size: 15px; border-bottom: 1px solid var(--cream-dk); padding-bottom: 4px; }
+  .page-content h3 { font-size: 13px; font-style: italic; }
+
+  .page-content p { margin-bottom: 10px; }
+
+  .page-content img {
+    max-width: 100%;
+    border-radius: 4px;
+    border: 1px solid var(--cream-dk);
+    margin: 8px 0;
+  }
+
+  .page-content ul, .page-content ol {
+    padding-left: 18px;
+    margin-bottom: 10px;
+  }
+
+  .page-content li { margin-bottom: 4px; }
+
+  .page-content blockquote {
+    border-left: 3px solid var(--gold);
+    padding: 6px 12px;
+    margin: 10px 0;
+    color: var(--brown-lt);
+    font-style: italic;
+    font-size: 13px;
+    background: var(--cream-dk);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .page-content table {
+    width: 100%;
+    font-size: 12px;
+    border-collapse: collapse;
+    margin: 8px 0;
+  }
+  .page-content th {
+    background: var(--cream-dk);
+    font-weight: 600;
+    padding: 5px 8px;
+    border: 1px solid rgba(74,55,40,0.15);
+    text-align: left;
+    font-family: 'Playfair Display', serif;
+    font-size: 11px;
+    color: var(--brown);
+  }
+  .page-content td {
+    padding: 4px 8px;
+    border: 1px solid rgba(74,55,40,0.1);
+  }
+
+  /* ── Activity badge (for activity entries) ── */
+  .activity-date {
+    display: inline-block;
+    font-size: 10px;
+    background: var(--cream-dk);
+    color: var(--muted);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Navigation ── */
+  #nav {
+    position: fixed;
+    bottom: 24px; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .nav-btn {
+    background: rgba(44,31,20,0.88);
+    border: 1px solid rgba(201,146,58,0.4);
+    color: var(--gold-lt);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(6px);
+  }
+
+  .nav-btn:hover { background: rgba(74,55,40,0.95); border-color: var(--gold); }
+  .nav-btn:active { transform: scale(0.95); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  #page-info {
+    font-size: 13px;
+    color: var(--gold-lt);
+    font-family: 'Playfair Display', serif;
+    min-width: 80px;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Loading ── */
+  #loading {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--brown);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    transition: opacity 0.6s;
+  }
+
+  #loading.hidden { opacity: 0; pointer-events: none; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid rgba(201,146,58,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #loading p {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold-lt);
+    font-style: italic;
+    font-size: 15px;
+  }
+
+  /* turn.js overrides */
+  .turn-page-wrapper { background: transparent !important; }
+
+  /* ── Mobile ── */
+  @media (max-width: 900px) {
+    :root {
+      --page-w: 300px;
+      --page-h: 440px;
+    }
+
+    /* On mobile, show single page */
+    #book {
+      width: var(--page-w) !important;
+    }
+
+    .page { font-size: 12px; }
+  }
 </style>
 </head>
 <body>
 
-<div id="loading"><div class="spinner"></div><p>Preparando el libro...</p></div>
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Preparando el libro...</p>
+</div>
 
 <div id="topbar">
   <div>
     <h1 id="book-title">Actividades del Colegio</h1>
-    <div class="sub" id="book-sub">Registro de actividades y eventos</div>
+    <div class="subtitle" id="book-subtitle">Registro de actividades y eventos</div>
   </div>
   <div id="page-counter">Pág. 1</div>
 </div>
 
 <div id="stage">
-  <div id="book-wrap">
-    <!-- static pages rendered here -->
-    <div id="left-slot"></div>
-    <div id="right-slot"></div>
-
-    <!-- flip layer (animated clone) -->
-    <div id="flip-layer">
-      <div id="flip-front"><div id="flip-shadow"></div></div>
-      <div id="flip-back"></div>
-    </div>
-  </div>
+  <div id="book"></div>
 </div>
 
 <div id="nav">
-  <button class="nav-btn" id="btn-prev" title="Página anterior">&#8592;<span class="hint">anterior</span></button>
+  <button class="nav-btn" id="btn-prev" title="Página anterior">&#8592;</button>
   <span id="page-info">1 / 1</span>
-  <button class="nav-btn" id="btn-next" title="Página siguiente">&#8594;<span class="hint">siguiente</span></button>
+  <button class="nav-btn" id="btn-next" title="Página siguiente">&#8594;</button>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/turn.js@4.1.0/turn.min.js"></script>
 <script>
-// ═══════════════════════════════════════
-// BOOK DATA
-// ═══════════════════════════════════════
-const META = {
-  title:    "Actividades del Colegio",
+// ─────────────────────────────────────────────
+// PAGES DATA
+// This array is generated automatically by convert.py
+// Each object = one page
+// ─────────────────────────────────────────────
+const BOOK_META = {
+  title: "Actividades del Colegio",
   subtitle: "Registro de actividades y eventos",
-  year:     new Date().getFullYear()
+  year: new Date().getFullYear()
 };
 
+// PAGE DATA — populated by convert.py
+// Format: { type: 'cover'|'chapter'|'content'|'back', title?, content? }
 const PAGES = [
   {
     "type": "cover"
@@ -412,7 +437,7 @@ const PAGES = [
     "type": "content",
     "chapter": "Olimpiadas Matemáticas",
     "chapter_label": "Actividad 3  ·  20 de mayo, 2025",
-    "content": "<p>Se realizó la segunda versión de las Olimpiadas Matemáticas internas. Participaron 8 equipos de distintos cursos.</p><table><tr><th>Lugar</th><th>Equipo</th><th>Puntos</th></tr><tr><td>1°</td><td>Los Calculadores</td><td>95</td></tr><tr><td>2°</td><td>Pi &amp; Cía</td><td>87</td></tr><tr><td>3°</td><td>Suma y Sigue</td><td>81</td></tr></table>"
+    "content": "<p>Se realizó la segunda versión de las Olimpiadas Matemáticas internas. Participaron 8 equipos de distintos cursos.</p><table><tr><th>Lugar</th><th>Equipo</th><th>Puntos</th></tr><tr><td>1°</td><td>Los Calculadores</td><td>95</td></tr><tr><td>2°</td><td>Pi & Cía</td><td>87</td></tr><tr><td>3°</td><td>Suma y Sigue</td><td>81</td></tr></table>"
   },
   {
     "type": "content",
@@ -430,342 +455,107 @@ const PAGES = [
     "type": "back"
   }
 ];
+// ─────────────────────────────────────────────
 
-// ═══════════════════════════════════════
-// SOUND ENGINE  (Web Audio API — sin librerías)
-// ═══════════════════════════════════════
-let audioCtx = null;
+document.getElementById('book-title').textContent = BOOK_META.title;
+document.getElementById('book-subtitle').textContent = BOOK_META.subtitle;
 
-function getAudio() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}
-
-function playPageFlip() {
-  try {
-    const ctx = getAudio();
-    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.22, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    const sr = ctx.sampleRate;
-
-    // Synthesize paper rustle: filtered noise with envelope
-    for (let i = 0; i < data.length; i++) {
-      const t = i / sr;
-      // noise
-      let s = (Math.random() * 2 - 1);
-      // quick attack, longer decay
-      const env = Math.exp(-t * 18) * (1 - Math.exp(-t * 180));
-      // add subtle low-freq thump at start
-      const thump = Math.exp(-t * 40) * Math.sin(2 * Math.PI * 80 * t) * 0.35;
-      // paper crinkle: modulated noise
-      const crinkle = s * Math.sin(2 * Math.PI * (800 + 400 * Math.sin(t * 60)) * t) * 0.5;
-      data[i] = (s * env * 0.4 + crinkle * env * 0.4 + thump) * 0.55;
-    }
-
-    // Bandpass filter for paper tone
-    const source = ctx.createBufferSource();
-    source.buffer = buf;
-
-    const bpf = ctx.createBiquadFilter();
-    bpf.type = 'bandpass';
-    bpf.frequency.value = 1800;
-    bpf.Q.value = 0.6;
-
-    const hpf = ctx.createBiquadFilter();
-    hpf.type = 'highpass';
-    hpf.frequency.value = 300;
-
-    const gain = ctx.createGain();
-    gain.gain.value = 0.55;
-
-    source.connect(hpf);
-    hpf.connect(bpf);
-    bpf.connect(gain);
-    gain.connect(ctx.destination);
-    source.start();
-  } catch(e) { /* silently ignore if audio not available */ }
-}
-
-// ═══════════════════════════════════════
-// PAGE BUILDER
-// ═══════════════════════════════════════
-function buildPageEl(pageData, pageNum, side) {
-  const div = document.createElement('div');
-  div.className = 'page ' + side;
+function buildPage(pageData, index) {
+  const isLeft  = index % 2 === 0;
+  const side    = isLeft ? '--left' : '--right';
+  const div     = document.createElement('div');
+  div.className = `page ${side}`;
 
   if (pageData.type === 'cover') {
     div.classList.add('cover');
     div.innerHTML = `
-      <div class="cover-frame"></div>
       <div class="page-inner">
-        <div class="cover-badge">
-          <svg viewBox="0 0 24 24"><path d="M12 2L3 7l9 5 9-5-9-5z"/><path d="M3 17l9 5 9-5"/><path d="M3 12l9 5 9-5"/></svg>
+        <div class="cover-ornament">
+          <svg viewBox="0 0 24 24"><path d="M12 2L3 7l9 5 9-5-9-5zM3 17l9 5 9-5M3 12l9 5 9-5"/></svg>
         </div>
-        <div class="rule"></div>
-        <h2>${META.title}</h2>
-        <div class="tagline">${META.subtitle}</div>
-        <div class="rule"></div>
-        <div class="yr">${META.year}</div>
+        <div class="cover-divider"></div>
+        <h2>${BOOK_META.title}</h2>
+        <div class="tagline">${BOOK_META.subtitle}</div>
+        <div class="year">${BOOK_META.year}</div>
+        <div class="cover-divider"></div>
       </div>`;
     return div;
   }
 
   if (pageData.type === 'back') {
-    div.classList.add('back');
+    div.classList.add('back-cover');
+    div.style.background = 'var(--brown)';
     return div;
   }
 
-  div.innerHTML = `<div class="page-inner">
-    ${pageData.chapter ? `<div class="chapter-header">
-      <div class="chapter-label">${pageData.chapter_label || ''}</div>
-      <div class="chapter-title">${pageData.chapter}</div>
-    </div>` : ''}
-    <div class="page-content">${pageData.content || ''}</div>
-    <span class="page-num">${pageNum}</span>
-  </div>`;
+  // Normal content page
+  const pNum = index; // will be shown 1-based from turn.js
+  div.innerHTML = `
+    <div class="page-inner">
+      ${pageData.chapter ? `
+        <div class="chapter-header">
+          <div class="chapter-label">${pageData.chapter_label || 'Capítulo'}</div>
+          <div class="chapter-title">${pageData.chapter}</div>
+        </div>` : ''}
+      <div class="page-content">${pageData.content || ''}</div>
+      <span class="page-num">${pNum}</span>
+    </div>`;
   return div;
 }
 
-// ═══════════════════════════════════════
-// BOOK STATE
-// ═══════════════════════════════════════
-const isMobile = window.innerWidth <= 880;
+$(document).ready(function() {
+  const $book = $('#book');
 
-// On desktop: spreads of 2. spread 0 = [cover], spread 1 = [p1,p2], etc.
-// Left page index = spread*2 - 1, right = spread*2
-// Simpler: just track "current left page index" (even = left, odd = right in spread)
-// We show pages as pairs: [0,1], [2,3], [4,5]...
-const spreadSize = isMobile ? 1 : 2;
-const totalSpreads = Math.ceil(PAGES.length / spreadSize);
-let currentSpread = 0;
-let animating = false;
+  PAGES.forEach((pageData, i) => {
+    const el = buildPage(pageData, i);
+    $book.append(el);
+  });
 
-const leftSlot  = document.getElementById('left-slot');
-const rightSlot = document.getElementById('right-slot');
-const flipLayer = document.getElementById('flip-layer');
-const flipFront = document.getElementById('flip-front');
-const flipBack  = document.getElementById('flip-back');
-const flipShadow= document.getElementById('flip-shadow');
+  const isMobile = window.innerWidth < 900;
+  const displayedW = isMobile
+    ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-w'))
+    : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-w')) * 2;
+  const displayedH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-h'));
 
-function getSpreadPages(spreadIdx) {
-  const li = spreadIdx * spreadSize;
-  const ri = li + 1;
-  return {
-    left:  PAGES[li] || null,
-    right: PAGES[ri] || null,
-    leftIdx:  li,
-    rightIdx: ri
-  };
-}
+  $book.turn({
+    width:  displayedW,
+    height: displayedH,
+    autoCenter: true,
+    display: isMobile ? 'single' : 'double',
+    acceleration: true,
+    gradients: true,
+    elevation: 50,
+    when: {
+      turned: function(e, page) {
+        updateUI(page);
+      }
+    }
+  });
 
-function renderSpread(spreadIdx) {
-  const {left, right, leftIdx, rightIdx} = getSpreadPages(spreadIdx);
-  leftSlot.innerHTML  = '';
-  rightSlot.innerHTML = '';
-  if (left)  { const el = buildPageEl(left,  leftIdx,  'left-page');  leftSlot.appendChild(el); }
-  if (right && !isMobile) { const el = buildPageEl(right, rightIdx, 'right-page'); rightSlot.appendChild(el); }
-}
-
-// Pre-render next/prev for cloning into flip layer
-function getPageHTML(pageData, pageNum, side) {
-  if (!pageData) return '<div class="page ' + side + '"></div>';
-  const el = buildPageEl(pageData, pageNum, side);
-  return el.outerHTML;
-}
-
-// ═══════════════════════════════════════
-// FLIP ANIMATION
-// ═══════════════════════════════════════
-const FLIP_MS = 480;
-
-function flipTo(dir) {
-  if (animating) return;
-  const next = currentSpread + dir;
-  if (next < 0 || next >= totalSpreads) return;
-
-  animating = true;
-  playPageFlip();
-
-  const cur  = getSpreadPages(currentSpread);
-  const nxt  = getSpreadPages(next);
-
-  if (isMobile) {
-    // Simple fade on mobile
-    const fromEl = leftSlot.firstChild;
-    if (fromEl) fromEl.style.transition = 'opacity .25s';
-    if (fromEl) fromEl.style.opacity = '0';
-    setTimeout(() => {
-      currentSpread = next;
-      renderSpread(currentSpread);
-      const toEl = leftSlot.firstChild;
-      if (toEl) { toEl.style.opacity='0'; toEl.style.transition='opacity .25s'; }
-      requestAnimationFrame(() => { if (toEl) toEl.style.opacity='1'; });
-      updateUI(); animating = false;
-    }, 250);
-    return;
+  function updateUI(page) {
+    const total = $book.turn('pages');
+    document.getElementById('page-counter').textContent = `Pág. ${page}`;
+    document.getElementById('page-info').textContent = `${page} / ${total}`;
+    document.getElementById('btn-prev').disabled = (page <= 1);
+    document.getElementById('btn-next').disabled = (page >= total);
   }
 
-  // Desktop: 3D flip
-  // Forward (next): right page flips left (over the spine to become new left)
-  // Backward (prev): left page flips right (over the spine to become new right)
+  updateUI(1);
 
-  if (dir > 0) {
-    // Forward flip: the current RIGHT page peels off leftward
-    // flip-layer sits over right side
-    flipLayer.className = 'flip-layer flip-right';
-    flipLayer.style.left = 'var(--pw)';
-    flipLayer.style.transformOrigin = 'left center';
+  document.getElementById('btn-prev').addEventListener('click', () => $book.turn('previous'));
+  document.getElementById('btn-next').addEventListener('click', () => $book.turn('next'));
 
-    // Front = current right page content
-    flipFront.innerHTML = '';
-    flipShadow.style.background = 'linear-gradient(to left,rgba(0,0,0,.3),transparent 60%)';
-    flipFront.appendChild(flipShadow);
-    if (cur.right) {
-      const el = buildPageEl(cur.right, cur.rightIdx, 'right-page');
-      el.style.position = 'absolute'; el.style.inset = '0';
-      flipFront.appendChild(el);
-    }
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') $book.turn('next');
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   $book.turn('previous');
+  });
 
-    // Back = next spread LEFT page (will show as new right after flip)
-    flipBack.innerHTML = '';
-    if (nxt.left) {
-      const el = buildPageEl(nxt.left, nxt.leftIdx, 'left-page');
-      el.style.position = 'absolute'; el.style.inset = '0';
-      // mirror because backface
-      el.style.transform = 'scaleX(-1)';
-      flipBack.appendChild(el);
-    }
-
-    // Swap static pages: update left to next left (it was already there behind)
-    // Actually update right slot immediately to show next right (will appear after flip)
-    rightSlot.innerHTML = '';
-    if (nxt.right) {
-      const el = buildPageEl(nxt.right, nxt.rightIdx, 'right-page');
-      rightSlot.appendChild(el);
-    }
-
-    // Start animation
-    flipLayer.style.transform = 'rotateY(0deg)';
-    flipLayer.style.transition = `transform ${FLIP_MS}ms cubic-bezier(.645,.045,.355,1.000)`;
-    flipShadow.style.opacity = '0';
-    flipShadow.style.transition = `opacity ${FLIP_MS}ms`;
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        flipLayer.style.transform = 'rotateY(-180deg)';
-        flipShadow.style.opacity = '1';
-      });
-    });
-
-    setTimeout(() => {
-      flipLayer.style.transition = 'none';
-      flipLayer.style.transform  = 'rotateY(0deg)';
-      currentSpread = next;
-      renderSpread(currentSpread);
-      updateUI();
-      animating = false;
-    }, FLIP_MS + 20);
-
-  } else {
-    // Backward flip: left page peels off rightward
-    flipLayer.className = 'flip-layer flip-left';
-    flipLayer.style.left = '0';
-    flipLayer.style.transformOrigin = 'right center';
-
-    flipFront.innerHTML = '';
-    flipShadow.style.background = 'linear-gradient(to right,rgba(0,0,0,.3),transparent 60%)';
-    flipFront.appendChild(flipShadow);
-    if (cur.left) {
-      const el = buildPageEl(cur.left, cur.leftIdx, 'left-page');
-      el.style.position = 'absolute'; el.style.inset = '0';
-      flipFront.appendChild(el);
-    }
-
-    flipBack.innerHTML = '';
-    if (nxt.right) {
-      const el = buildPageEl(nxt.right, nxt.rightIdx, 'right-page');
-      el.style.position = 'absolute'; el.style.inset = '0';
-      el.style.transform = 'scaleX(-1)';
-      flipBack.appendChild(el);
-    }
-
-    leftSlot.innerHTML = '';
-    if (nxt.left) {
-      const el = buildPageEl(nxt.left, nxt.leftIdx, 'left-page');
-      leftSlot.appendChild(el);
-    }
-
-    flipLayer.style.transform = 'rotateY(0deg)';
-    flipLayer.style.transition = `transform ${FLIP_MS}ms cubic-bezier(.645,.045,.355,1.000)`;
-    flipShadow.style.opacity = '0';
-    flipShadow.style.transition = `opacity ${FLIP_MS}ms`;
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        flipLayer.style.transform = 'rotateY(180deg)';
-        flipShadow.style.opacity = '1';
-      });
-    });
-
-    setTimeout(() => {
-      flipLayer.style.transition = 'none';
-      flipLayer.style.transform  = 'rotateY(0deg)';
-      currentSpread = next;
-      renderSpread(currentSpread);
-      updateUI();
-      animating = false;
-    }, FLIP_MS + 20);
-  }
-}
-
-// ═══════════════════════════════════════
-// UI
-// ═══════════════════════════════════════
-function updateUI() {
-  document.getElementById('page-counter').textContent = `Pág. ${currentSpread * spreadSize + 1}`;
-  document.getElementById('page-info').textContent    = `${currentSpread + 1} / ${totalSpreads}`;
-  document.getElementById('btn-prev').disabled = currentSpread <= 0;
-  document.getElementById('btn-next').disabled = currentSpread >= totalSpreads - 1;
-}
-
-document.getElementById('btn-prev').addEventListener('click', () => flipTo(-1));
-document.getElementById('btn-next').addEventListener('click', () => flipTo(1));
-
-document.addEventListener('keydown', e => {
-  if (e.key==='ArrowRight'||e.key==='ArrowDown') flipTo(1);
-  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   flipTo(-1);
+  // Hide loading
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('hidden');
+  }, 400);
 });
-
-// Swipe
-let tx = null;
-document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
-document.addEventListener('touchend',   e => {
-  if (tx===null) return;
-  const dx = e.changedTouches[0].clientX - tx;
-  if (Math.abs(dx)>50) flipTo(dx<0?1:-1);
-  tx = null;
-});
-
-// Click zones
-document.getElementById('stage').addEventListener('click', e => {
-  const w = window.innerWidth;
-  if (e.clientX < w * 0.3) flipTo(-1);
-  else if (e.clientX > w * 0.7) flipTo(1);
-});
-
-// Unlock audio on first interaction
-document.addEventListener('click', () => { try { getAudio(); } catch(e){} }, { once: true });
-
-// Mobile sizing
-if (isMobile) {
-  const pw = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--pw'));
-  document.getElementById('book-wrap').style.width = pw + 'px';
-}
-
-// Init
-renderSpread(0);
-updateUI();
-setTimeout(() => document.getElementById('loading').classList.add('hidden'), 350);
 </script>
 </body>
 </html>
