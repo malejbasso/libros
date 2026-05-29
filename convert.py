@@ -640,6 +640,7 @@ function go(dir){{
       p.style.cssText =
         'position:absolute;inset:0';
 
+      p.style.transform = 'scaleX(-1)';
       back.appendChild(p);
     }}
 
