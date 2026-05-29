@@ -205,7 +205,7 @@ html,body{{
   height:100%;
   overflow:hidden;
 
-  background:#120904;
+  background:#1b1008;
 
   font-family:'Lora',serif;
 }}
@@ -277,7 +277,7 @@ html,body{{
   left:50%;
   top:0;
 
-  width:30px;
+  width:14px;
   height:100%;
 
   transform:translateX(-50%);
@@ -285,16 +285,14 @@ html,body{{
   background:
     linear-gradient(
       to right,
-      rgba(0,0,0,.18),
-      rgba(0,0,0,.05),
-      rgba(255,255,255,.6),
-      rgba(0,0,0,.05),
-      rgba(0,0,0,.18)
+      rgba(0,0,0,.35),
+      rgba(255,255,255,.08),
+      rgba(0,0,0,.35)
     );
 
-  filter:blur(2px);
+  opacity:.45;
 
-  z-index:30;
+  z-index:40;
 
   pointer-events:none;
 }}
@@ -615,14 +613,15 @@ function go(dir){{
     return;
   }}
 
+  front.innerHTML='';
+  back.innerHTML='';
+
   if(dir > 0){{
 
     flip.style.left='var(--pw)';
     flip.style.transformOrigin='left center';
 
-    front.innerHTML='';
-    back.innerHTML='';
-
+    // Página visible actual
     if(cs.right){{
 
       const p = makePage(cs.right,'right');
@@ -633,14 +632,14 @@ function go(dir){{
       front.appendChild(p);
     }}
 
+    // Dorso de la hoja
     if(ns.left){{
 
       const p = makePage(ns.left,'left');
 
       p.style.cssText =
-        'position:absolute;inset:0';
+        'position:absolute;inset:0;transform:scaleX(-1)';
 
-      p.style.transform = 'scaleX(-1)';
       back.appendChild(p);
     }}
 
@@ -648,9 +647,6 @@ function go(dir){{
 
     flip.style.left='0';
     flip.style.transformOrigin='right center';
-
-    front.innerHTML='';
-    back.innerHTML='';
 
     if(cs.left){{
 
@@ -667,22 +663,11 @@ function go(dir){{
       const p = makePage(ns.right,'right');
 
       p.style.cssText =
-        'position:absolute;inset:0';
+        'position:absolute;inset:0;transform:scaleX(-1)';
 
       back.appendChild(p);
     }}
   }}
-
-  leftSlot.innerHTML='';
-  rightSlot.innerHTML='';
-
-  leftSlot.appendChild(
-    makePage(ns.left,'left')
-  );
-
-  rightSlot.appendChild(
-    makePage(ns.right,'right')
-  );
 
   flip.style.transition='none';
 
@@ -692,7 +677,7 @@ function go(dir){{
     requestAnimationFrame(()=>{{
 
       flip.style.transition =
-        'transform 550ms cubic-bezier(.645,.045,.355,1)';
+        'transform 650ms cubic-bezier(.645,.045,.355,1)';
 
       flip.style.transform =
         dir > 0
@@ -702,11 +687,10 @@ function go(dir){{
     }});
   }});
 
+  // IMPORTANTE:
+  // render final SOLO después del flip
+
   setTimeout(()=>{{
-
-    flip.style.transition='none';
-
-    flip.style.transform='rotateY(0deg)';
 
     current = next;
 
@@ -714,9 +698,16 @@ function go(dir){{
 
     updateUI();
 
+    flip.style.transition='none';
+
+    flip.style.transform='rotateY(0deg)';
+
+    front.innerHTML='';
+    back.innerHTML='';
+
     busy = false;
 
-  }},580);
+  }},680);
 }}
 
 document.getElementById('prev')
