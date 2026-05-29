@@ -168,21 +168,10 @@ def generate_html(
     output_path
 ):
 
-    pages_html = ""
-
-    # Primera página blanca
-    pages_html += '''
-    <div class="page blank"></div>
-    '''
-
-    # Páginas reales
-    for p in pages_b64:
-
-        pages_html += f'''
-        <div class="page">
-            <img src="data:image/png;base64,{p}">
-        </div>
-        '''
+    pages_json = "[" + ",".join([
+        '{"src":"data:image/png;base64,' + p + '"}'
+        for p in pages_b64
+    ]) + "]"
 
     html = f"""
 <!DOCTYPE html>
@@ -193,152 +182,172 @@ def generate_html(
 <meta charset="UTF-8">
 
 <meta name="viewport"
-      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+      content="width=device-width, initial-scale=1.0">
 
 <title>{title}</title>
 
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-
-<script src="./turn.js"></script>
-
-<link rel="preconnect"
-      href="https://fonts.googleapis.com">
-
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap"
-      rel="stylesheet">
+<script src="turn.js"></script>
 
 <style>
 
 *{{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
+  margin:0;
+  padding:0;
+  box-sizing:border-box;
 }}
 
 html,body{{
-    width:100%;
-    height:100%;
+  width:100%;
+  height:100%;
+  overflow:hidden;
 
-    overflow:hidden;
+  background:#120904;
 
-    background:#1b1008;
-
-    font-family:'Playfair Display',serif;
+  font-family:Georgia, serif;
 }}
 
-#toolbar{{
-    position:fixed;
+#app{{
+  width:100%;
+  height:100vh;
 
-    top:0;
-    left:0;
-    right:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
 
-    height:60px;
-
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-
-    padding:0 20px;
-
-    background:rgba(0,0,0,.55);
-
-    backdrop-filter:blur(10px);
-
-    z-index:9999;
+  overflow:hidden;
 }}
 
-#toolbar h1{{
-    color:white;
-    font-size:18px;
-}}
-
-#toolbar .sub{{
-    color:#ccc;
-    font-size:12px;
-}}
-
-#page-number{{
-    color:#E0C27A;
-    font-size:16px;
-}}
-
-#container{{
-    width:100%;
-    height:100vh;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
-
-    padding-top:40px;
-}}
-
-#book{{
-    width:1040px;
-    height:735px;
+#flipbook{{
+  box-shadow:
+    0 10px 40px rgba(0,0,0,.45);
 }}
 
 .page{{
-    width:520px;
-    height:735px;
-
-    background:white;
-
-    overflow:hidden;
-
-    display:flex;
-    align-items:center;
-    justify-content:center;
+  background:white;
 }}
 
 .page img{{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+
+  background:white;
+}}
+
+#toolbar{{
+  position:fixed;
+
+  top:0;
+  left:0;
+  right:0;
+
+  height:50px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  padding:0 15px;
+
+  background:rgba(0,0,0,.7);
+
+  color:white;
+
+  z-index:9999;
+}}
+
+#toolbar h1{{
+  font-size:16px;
+}}
+
+#toolbar small{{
+  opacity:.7;
+}}
+
+#nav{{
+  position:fixed;
+
+  bottom:15px;
+  left:0;
+  right:0;
+
+  display:flex;
+  justify-content:center;
+  align-items:center;
+
+  gap:16px;
+
+  z-index:9999;
+}}
+
+.btn{{
+  width:48px;
+  height:48px;
+
+  border-radius:50%;
+  border:none;
+
+  background:white;
+
+  font-size:24px;
+
+  cursor:pointer;
+
+  box-shadow:
+    0 5px 15px rgba(0,0,0,.35);
+}}
+
+#counter{{
+  color:#fff;
+  font-size:18px;
+}}
+
+@media (max-width: 768px) {{
+
+  body{{
+    overflow:hidden;
+  }}
+
+  #flipbook{{
+    width:88vw !important;
+    height:calc(88vw * 1.414) !important;
+    margin-top:10px;
+  }}
+
+  .page img{{
     width:100%;
     height:100%;
-
     object-fit:contain;
+  }}
 
-    background:white;
+  #toolbar{{
+    height:44px;
+    padding:0 10px;
+  }}
 
-    user-select:none;
-    pointer-events:none;
-}}
+  #toolbar h1{{
+    font-size:13px;
+  }}
 
-.blank{{
-    background:white;
-}}
+  #pageLabel{{
+    font-size:12px;
+  }}
 
-.turn-page{{
-    box-shadow:
-        0 0 25px rgba(0,0,0,.25);
-}}
+  #nav{{
+    bottom:12px;
+    gap:12px;
+  }}
 
-@media(max-width:1100px){{
+  .btn{{
+    width:42px;
+    height:42px;
+    font-size:20px;
+  }}
 
-    #container{{
-        padding-top:60px;
-        align-items:flex-start;
-    }}
-
-    #book{{
-        width:100vw !important;
-        height:calc(100vh - 100px) !important;
-    }}
-
-    .page{{
-        width:100vw !important;
-        height:calc(100vh - 100px) !important;
-    }}
-
-    .page img{{
-        width:100%;
-        height:100%;
-
-        object-fit:contain;
-        object-position:center top;
-
-        background:white;
-    }}
+  #counter{{
+    font-size:16px;
+  }}
 }}
 
 </style>
@@ -349,176 +358,152 @@ html,body{{
 
 <div id="toolbar">
 
-    <div>
-        <h1>{title}</h1>
-        <div class="sub">{subtitle}</div>
-    </div>
+  <div>
+    <h1>{title}</h1>
+    <small>{subtitle}</small>
+  </div>
 
-    <div id="page-number">
-        Página 1
-    </div>
+  <div id="pageLabel">
+    Página 1
+  </div>
+
+</div>
+
+<div id="app">
+
+  <div id="flipbook"></div>
 
 </div>
 
-<div id="container">
+<div id="nav">
 
-    <div id="book">
+  <button class="btn" id="prev">
+    ←
+  </button>
 
-        {pages_html}
+  <div id="counter"></div>
 
-    </div>
+  <button class="btn" id="next">
+    →
+  </button>
 
 </div>
+
+<audio id="pageSound" preload="auto">
+  <source src="page-flip.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 
-const isMobile =
-    window.innerWidth <= 1100;
+const rawPages = {pages_json};
 
-const bookWidth =
-    isMobile
-        ? window.innerWidth - 20
-        : 1040;
+const isMobile = window.innerWidth <= 768;
 
-const bookHeight =
-    isMobile
-        ? (window.innerHeight - 120)
-        : 735;
+// Desktop:
+// [vacío][1]
+// [2][3]
+// [4][5]
 
-$('#book').css({{
-    width: bookWidth + 'px',
-    height: bookHeight + 'px'
-}});
+const pages = isMobile
+  ? rawPages
+  : [null, ...rawPages];
 
-$('#book').turn({{
+const flipbook =
+  document.getElementById('flipbook');
 
-    width: bookWidth,
+for(let i = 0; i < pages.length; i++){{
 
-    height: bookHeight,
+  const pageData = pages[i];
 
-    autoCenter: true,
+  const div = document.createElement('div');
 
-    gradients: true,
+  div.className = 'page';
 
-    acceleration: true,
+  if(pageData){{
 
-    elevation: 50,
+    const img = document.createElement('img');
 
-    duration: 1200,
+    img.src = pageData.src;
 
-    display: isMobile ? 'single' : 'double'
+    div.appendChild(img);
 
-}});
+  }}else{{
 
+    div.style.background = 'white';
+  }}
 
-// ─────────────────────────────
-// SONIDO HOJA
-// ─────────────────────────────
-
-function playFlipSound(){{
-
-    try {{
-
-        const ctx =
-            new(window.AudioContext || window.webkitAudioContext)();
-
-        const buffer =
-            ctx.createBuffer(1, 22050, 22050);
-
-        const data =
-            buffer.getChannelData(0);
-
-        for(let i=0;i<data.length;i++){{
-
-            data[i] =
-                (Math.random()*2-1)
-                *
-                Math.exp(-i/5000);
-        }}
-
-        const source =
-            ctx.createBufferSource();
-
-        source.buffer = buffer;
-
-        const gain =
-            ctx.createGain();
-
-        gain.gain.value = 0.04;
-
-        source.connect(gain);
-
-        gain.connect(ctx.destination);
-
-        source.start();
-
-    }} catch(e){{}}
+  flipbook.appendChild(div);
 }}
 
+$('#flipbook').turn({{
 
-// ─────────────────────────────
-// CAMBIO PÁGINA
-// ─────────────────────────────
+  width: isMobile
+    ? window.innerWidth * 0.88
+    : 1100,
 
-$('#book').bind('turning', function(event, page){{
+  height: isMobile
+    ? (window.innerWidth * 0.88) * 1.414
+    : 780,
 
-    playFlipSound();
+  autoCenter: true,
 
-    let realPage = page;
+  display: isMobile
+    ? 'single'
+    : 'double',
 
-    if(realPage > 1){{
-        realPage--;
+  elevation: 50,
+
+  gradients: true,
+
+  acceleration: true,
+
+  when: {{
+
+    turning: function(event, page){{
+
+      const audio =
+        document.getElementById('pageSound');
+
+      audio.currentTime = 0;
+
+      audio.play().catch(()=>{{}});
+    }},
+
+    turned: function(event, page){{
+
+      document.getElementById('pageLabel')
+        .textContent = 'Página ' + page;
+
+      document.getElementById('counter')
+        .textContent =
+          page + ' / ' + pages.length;
     }}
-
-    document.getElementById('page-number')
-        .innerText =
-            'Página ' + realPage;
+  }}
 }});
 
+if(isMobile){{
+  $('#flipbook').turn('page', 2);
+}}
 
-// ─────────────────────────────
-// TECLADO
-// ─────────────────────────────
+document.getElementById('prev')
+  .addEventListener('click', ()=>{{
+    $('#flipbook').turn('previous');
+  }});
 
-document.addEventListener('keydown', e => {{
+document.getElementById('next')
+  .addEventListener('click', ()=>{{
+    $('#flipbook').turn('next');
+  }});
 
-    if(e.key === 'ArrowRight'){{
-        $('#book').turn('next');
-    }}
+document.addEventListener('keydown', e=>{{
 
-    if(e.key === 'ArrowLeft'){{
-        $('#book').turn('previous');
-    }}
+  if(e.key === 'ArrowRight'){{
+    $('#flipbook').turn('next');
+  }}
 
-}});
-
-
-// ─────────────────────────────
-// TOUCH MÓVIL
-// ─────────────────────────────
-
-let touchStartX = 0;
-
-document.addEventListener('touchstart', e => {{
-
-    touchStartX =
-        e.changedTouches[0].screenX;
-
-}});
-
-document.addEventListener('touchend', e => {{
-
-    const endX =
-        e.changedTouches[0].screenX;
-
-    if(touchStartX - endX > 50){{
-        $('#book').turn('next');
-    }}
-
-    if(endX - touchStartX > 50){{
-        $('#book').turn('previous');
-    }}
-
+  if(e.key === 'ArrowLeft'){{
+    $('#flipbook').turn('previous');
+  }}
 }});
 
 </script>
