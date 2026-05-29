@@ -453,10 +453,10 @@ function buildPageEl(pageData, pageNum, side) {
     return div;
   }
 
-  div.innerHTML = \`<div class="page-inner">
-    <div class="page-content">\${pageData.content || ''}</div>
-    <span class="page-num">\${pageNum}</span>
-  </div>\`;
+  div.innerHTML = `<div class="page-inner">
+    <div class="page-content">${pageData.content || ''}</div>
+    <span class="page-num">${pageNum}</span>
+  </div>`;
   return div;
 }
 
@@ -589,9 +589,9 @@ function flipTo(dir) {
     flipLayer.style.transform  = 'rotateY(0deg)';
     flipShadow.style.opacity   = '0';
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      flipLayer.style.transition  = \`transform \${FLIP_MS}ms cubic-bezier(.645,.045,.355,1)\`;
-      flipShadow.style.transition = \`opacity \${FLIP_MS}ms\`;
-      flipLayer.style.transform   = \`rotateY(\${deg}deg)\`;
+      flipLayer.style.transition  = `transform ${FLIP_MS}ms cubic-bezier(.645,.045,.355,1)`;
+      flipShadow.style.transition = `opacity ${FLIP_MS}ms`;
+      flipLayer.style.transform   = `rotateY(${deg}deg)`;
       flipShadow.style.opacity    = '1';
     }));
     setTimeout(() => {
@@ -611,8 +611,8 @@ function flipTo(dir) {
 // ═══════════════════════════════════════
 function updateUI() {
   const p = currentSpread * 2 + 1;
-  document.getElementById('page-counter').textContent = \`Pág. \${p}\`;
-  document.getElementById('page-info').textContent    = \`\${currentSpread + 1} / \${totalSpreads}\`;
+  document.getElementById('page-counter').textContent = `Pág. ${p}`;
+  document.getElementById('page-info').textContent    = `${currentSpread + 1} / ${totalSpreads}`;
   document.getElementById('btn-prev').disabled = currentSpread <= 0;
   document.getElementById('btn-next').disabled = currentSpread >= totalSpreads - 1;
 }
