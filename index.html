@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Libro Digital del Colegio</title>
+<script src="https://cdn.jsdelivr.net/npm/turn.js@4.1.0/turn.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --cream:    #F8F3E8;
+    --cream-dk: #EDE6D3;
+    --brown:    #4A3728;
+    --brown-lt: #7A6152;
+    --gold:     #C9923A;
+    --gold-lt:  #E8B96A;
+    --ink:      #2C1F14;
+    --muted:    #8A7060;
+    --shadow:   rgba(44,31,20,0.35);
+    --page-w:   420px;
+    --page-h:   580px;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--brown);
+    background-image:
+      radial-gradient(ellipse at 20% 20%, #6B4C38 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, #3A2518 0%, transparent 50%);
+    font-family: 'Source Serif 4', Georgia, serif;
+    color: var(--ink);
+    overflow: hidden;
+  }
+
+  /* ── Top bar ── */
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height: 52px;
+    background: rgba(44,31,20,0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(201,146,58,0.3);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 24px;
+  }
+
+  #topbar h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--gold-lt);
+    letter-spacing: 0.04em;
+  }
+
+  #topbar .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    font-style: italic;
+    margin-top: 1px;
+  }
+
+  #page-counter {
+    font-size: 13px;
+    color: var(--gold-lt);
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Stage ── */
+  #stage {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-top: 52px;
+  }
+
+  /* ── Book ── */
+  #book {
+    width: calc(var(--page-w) * 2);
+    height: var(--page-h);
+    position: relative;
+    filter: drop-shadow(0 24px 48px var(--shadow));
+  }
+
+  /* ── Pages ── */
+  .page {
+    width: var(--page-w);
+    height: var(--page-h);
+    background: var(--cream);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Page texture overlay */
+  .page::before {
+    content: '';
+    position: absolute; inset: 0; z-index: 0;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='4' height='4'%3E%3Crect width='4' height='4' fill='%23F8F3E8'/%3E%3Ccircle cx='1' cy='1' r='0.4' fill='%23D4C9B0' opacity='0.3'/%3E%3C/svg%3E");
+    pointer-events: none;
+  }
+
+  /* Left pages have spine shadow */
+  .page.--left .page-inner { border-right: 2px solid rgba(74,55,40,0.12); }
+  .page.--right .page-inner { border-left: 2px solid rgba(74,55,40,0.08); }
+
+  .page-inner {
+    position: relative; z-index: 1;
+    padding: 36px 32px 28px;
+    height: 100%;
+    display: flex; flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── Cover page ── */
+  .cover {
+    background: var(--brown) !important;
+    background-image:
+      radial-gradient(ellipse at 50% 30%, #6B4C38 0%, #3A2518 60%) !important;
+  }
+
+  .cover .page-inner {
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 16px;
+    padding: 48px 40px;
+  }
+
+  .cover-ornament {
+    width: 64px; height: 64px;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin: 0 auto;
+  }
+
+  .cover-ornament svg { width: 32px; height: 32px; fill: var(--gold); }
+
+  .cover h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--cream);
+    line-height: 1.2;
+    margin-top: 8px;
+  }
+
+  .cover .tagline {
+    font-size: 13px;
+    color: var(--gold-lt);
+    font-style: italic;
+    letter-spacing: 0.06em;
+    border-top: 1px solid rgba(201,146,58,0.4);
+    border-bottom: 1px solid rgba(201,146,58,0.4);
+    padding: 8px 24px;
+  }
+
+  .cover .year {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 8px;
+  }
+
+  .cover-divider {
+    width: 80px;
+    height: 1px;
+    background: linear-gradient(to right, transparent, var(--gold), transparent);
+  }
+
+  /* ── Back cover ── */
+  .back-cover { background: var(--brown) !important; }
+
+  /* ── Chapter header ── */
+  .chapter-header {
+    border-bottom: 1.5px solid var(--gold);
+    padding-bottom: 10px;
+    margin-bottom: 16px;
+  }
+
+  .chapter-label {
+    font-size: 10px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 400;
+    margin-bottom: 3px;
+  }
+
+  .chapter-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brown);
+    line-height: 1.2;
+  }
+
+  /* ── Page number ── */
+  .page-num {
+    position: absolute;
+    bottom: 16px;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    font-style: italic;
+  }
+  .page.--left .page-num  { left: 32px; }
+  .page.--right .page-num { right: 32px; }
+
+  /* ── Content ── */
+  .page-content {
+    flex: 1;
+    overflow: hidden;
+    font-size: 13.5px;
+    line-height: 1.75;
+    color: var(--ink);
+  }
+
+  .page-content h1, .page-content h2, .page-content h3 {
+    font-family: 'Playfair Display', serif;
+    color: var(--brown);
+    margin: 14px 0 6px;
+  }
+
+  .page-content h1 { font-size: 18px; }
+  .page-content h2 { font-size: 15px; border-bottom: 1px solid var(--cream-dk); padding-bottom: 4px; }
+  .page-content h3 { font-size: 13px; font-style: italic; }
+
+  .page-content p { margin-bottom: 10px; }
+
+  .page-content img {
+    max-width: 100%;
+    border-radius: 4px;
+    border: 1px solid var(--cream-dk);
+    margin: 8px 0;
+  }
+
+  .page-content ul, .page-content ol {
+    padding-left: 18px;
+    margin-bottom: 10px;
+  }
+
+  .page-content li { margin-bottom: 4px; }
+
+  .page-content blockquote {
+    border-left: 3px solid var(--gold);
+    padding: 6px 12px;
+    margin: 10px 0;
+    color: var(--brown-lt);
+    font-style: italic;
+    font-size: 13px;
+    background: var(--cream-dk);
+    border-radius: 0 4px 4px 0;
+  }
+
+  .page-content table {
+    width: 100%;
+    font-size: 12px;
+    border-collapse: collapse;
+    margin: 8px 0;
+  }
+  .page-content th {
+    background: var(--cream-dk);
+    font-weight: 600;
+    padding: 5px 8px;
+    border: 1px solid rgba(74,55,40,0.15);
+    text-align: left;
+    font-family: 'Playfair Display', serif;
+    font-size: 11px;
+    color: var(--brown);
+  }
+  .page-content td {
+    padding: 4px 8px;
+    border: 1px solid rgba(74,55,40,0.1);
+  }
+
+  /* ── Activity badge (for activity entries) ── */
+  .activity-date {
+    display: inline-block;
+    font-size: 10px;
+    background: var(--cream-dk);
+    color: var(--muted);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Navigation ── */
+  #nav {
+    position: fixed;
+    bottom: 24px; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+
+  .nav-btn {
+    background: rgba(44,31,20,0.88);
+    border: 1px solid rgba(201,146,58,0.4);
+    color: var(--gold-lt);
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+    backdrop-filter: blur(6px);
+  }
+
+  .nav-btn:hover { background: rgba(74,55,40,0.95); border-color: var(--gold); }
+  .nav-btn:active { transform: scale(0.95); }
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  #page-info {
+    font-size: 13px;
+    color: var(--gold-lt);
+    font-family: 'Playfair Display', serif;
+    min-width: 80px;
+    text-align: center;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Loading ── */
+  #loading {
+    position: fixed; inset: 0; z-index: 200;
+    background: var(--brown);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    transition: opacity 0.6s;
+  }
+
+  #loading.hidden { opacity: 0; pointer-events: none; }
+
+  .spinner {
+    width: 36px; height: 36px;
+    border: 2px solid rgba(201,146,58,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  #loading p {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold-lt);
+    font-style: italic;
+    font-size: 15px;
+  }
+
+  /* turn.js overrides */
+  .turn-page-wrapper { background: transparent !important; }
+
+  /* ── Mobile ── */
+  @media (max-width: 900px) {
+    :root {
+      --page-w: 300px;
+      --page-h: 440px;
+    }
+
+    /* On mobile, show single page */
+    #book {
+      width: var(--page-w) !important;
+    }
+
+    .page { font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="spinner"></div>
+  <p>Preparando el libro...</p>
+</div>
+
+<div id="topbar">
+  <div>
+    <h1 id="book-title">Actividades del Colegio</h1>
+    <div class="subtitle" id="book-subtitle">Registro de actividades y eventos</div>
+  </div>
+  <div id="page-counter">Pág. 1</div>
+</div>
+
+<div id="stage">
+  <div id="book"></div>
+</div>
+
+<div id="nav">
+  <button class="nav-btn" id="btn-prev" title="Página anterior">&#8592;</button>
+  <span id="page-info">1 / 1</span>
+  <button class="nav-btn" id="btn-next" title="Página siguiente">&#8594;</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/turn.js@4.1.0/turn.min.js"></script>
+<script>
+// ─────────────────────────────────────────────
+// PAGES DATA
+// This array is generated automatically by convert.py
+// Each object = one page
+// ─────────────────────────────────────────────
+const BOOK_META = {
+  title: "Actividades del Colegio",
+  subtitle: "Registro de actividades y eventos",
+  year: new Date().getFullYear()
+};
+
+// PAGE DATA — populated by convert.py
+// Format: { type: 'cover'|'chapter'|'content'|'back', title?, content? }
+const PAGES = [
+  {
+    "type": "cover"
+  },
+  {
+    "type": "content",
+    "chapter": "Día del Libro",
+    "chapter_label": "Actividad 1  ·  12 de abril, 2025",
+    "content": "<p>Los alumnos de 5° básico organizaron una feria del libro en el patio central. Cada curso presentó su libro favorito con un afiche hecho a mano.</p><p>Participaron más de 120 estudiantes y se donaron 45 libros a la biblioteca del colegio.</p><blockquote>\"Leer es volar sin moverse del lugar.\"</blockquote>"
+  },
+  {
+    "type": "content",
+    "chapter": "Taller de Huerto Escolar",
+    "chapter_label": "Actividad 2  ·  3 de mayo, 2025",
+    "content": "<p>Con apoyo de padres voluntarios, los alumnos de 3° básico aprendieron a sembrar tomates, lechugas y hierbas aromáticas en el huerto del colegio.</p><p>Cada estudiante se llevó una pequeña maceta con semillas para continuar el aprendizaje en casa.</p>"
+  },
+  {
+    "type": "content",
+    "chapter": "Olimpiadas Matemáticas",
+    "chapter_label": "Actividad 3  ·  20 de mayo, 2025",
+    "content": "<p>Se realizó la segunda versión de las Olimpiadas Matemáticas internas. Participaron 8 equipos de distintos cursos.</p><table><tr><th>Lugar</th><th>Equipo</th><th>Puntos</th></tr><tr><td>1°</td><td>Los Calculadores</td><td>95</td></tr><tr><td>2°</td><td>Pi & Cía</td><td>87</td></tr><tr><td>3°</td><td>Suma y Sigue</td><td>81</td></tr></table>"
+  },
+  {
+    "type": "content",
+    "chapter": "Visita al Museo Nacional",
+    "chapter_label": "Actividad 4  ·  10 de junio, 2025",
+    "content": "<p>Los alumnos de 7° y 8° básico visitaron el Museo Nacional de Historia Natural en Santiago. El recorrido incluyó las salas de paleontología y biodiversidad.</p><p>Los estudiantes realizaron un taller de dibujo científico guiados por los educadores del museo.</p>"
+  },
+  {
+    "type": "content",
+    "chapter": "Festival de la Primavera",
+    "chapter_label": "Actividad 5  ·  21 de septiembre, 2025",
+    "content": "<p>El Festival de la Primavera reunió a todos los cursos en el patio para celebrar el inicio de la estación. Hubo presentaciones de danza, música y poesía.</p><p>El evento cerró con una suelta de globos elaborados por los propios estudiantes con materiales reciclados.</p>"
+  },
+  {
+    "type": "back"
+  }
+];
+// ─────────────────────────────────────────────
+
+document.getElementById('book-title').textContent = BOOK_META.title;
+document.getElementById('book-subtitle').textContent = BOOK_META.subtitle;
+
+function buildPage(pageData, index) {
+  const isLeft  = index % 2 === 0;
+  const side    = isLeft ? '--left' : '--right';
+  const div     = document.createElement('div');
+  div.className = `page ${side}`;
+
+  if (pageData.type === 'cover') {
+    div.classList.add('cover');
+    div.innerHTML = `
+      <div class="page-inner">
+        <div class="cover-ornament">
+          <svg viewBox="0 0 24 24"><path d="M12 2L3 7l9 5 9-5-9-5zM3 17l9 5 9-5M3 12l9 5 9-5"/></svg>
+        </div>
+        <div class="cover-divider"></div>
+        <h2>${BOOK_META.title}</h2>
+        <div class="tagline">${BOOK_META.subtitle}</div>
+        <div class="year">${BOOK_META.year}</div>
+        <div class="cover-divider"></div>
+      </div>`;
+    return div;
+  }
+
+  if (pageData.type === 'back') {
+    div.classList.add('back-cover');
+    div.style.background = 'var(--brown)';
+    return div;
+  }
+
+  // Normal content page
+  const pNum = index; // will be shown 1-based from turn.js
+  div.innerHTML = `
+    <div class="page-inner">
+      ${pageData.chapter ? `
+        <div class="chapter-header">
+          <div class="chapter-label">${pageData.chapter_label || 'Capítulo'}</div>
+          <div class="chapter-title">${pageData.chapter}</div>
+        </div>` : ''}
+      <div class="page-content">${pageData.content || ''}</div>
+      <span class="page-num">${pNum}</span>
+    </div>`;
+  return div;
+}
+
+$(document).ready(function() {
+  const $book = $('#book');
+
+  PAGES.forEach((pageData, i) => {
+    const el = buildPage(pageData, i);
+    $book.append(el);
+  });
+
+  const isMobile = window.innerWidth < 900;
+  const displayedW = isMobile
+    ? parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-w'))
+    : parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-w')) * 2;
+  const displayedH = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--page-h'));
+
+  $book.turn({
+    width:  displayedW,
+    height: displayedH,
+    autoCenter: true,
+    display: isMobile ? 'single' : 'double',
+    acceleration: true,
+    gradients: true,
+    elevation: 50,
+    when: {
+      turned: function(e, page) {
+        updateUI(page);
+      }
+    }
+  });
+
+  function updateUI(page) {
+    const total = $book.turn('pages');
+    document.getElementById('page-counter').textContent = `Pág. ${page}`;
+    document.getElementById('page-info').textContent = `${page} / ${total}`;
+    document.getElementById('btn-prev').disabled = (page <= 1);
+    document.getElementById('btn-next').disabled = (page >= total);
+  }
+
+  updateUI(1);
+
+  document.getElementById('btn-prev').addEventListener('click', () => $book.turn('previous'));
+  document.getElementById('btn-next').addEventListener('click', () => $book.turn('next'));
+
+  // Keyboard navigation
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') $book.turn('next');
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   $book.turn('previous');
+  });
+
+  // Hide loading
+  setTimeout(() => {
+    document.getElementById('loading').classList.add('hidden');
+  }, 400);
+});
+</script>
+</body>
+</html>
