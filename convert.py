@@ -138,9 +138,10 @@ def table_to_html(table) -> str:
 
 def docx_to_pages(docx_path: str) -> list:
     """
-    Convierte el .docx en una lista de páginas para el libro.
-    Cada Heading 1 comienza una nueva sección (capítulo).
-    El contenido largo se pagina automáticamente.
+    Convierte el .docx en una lista de paginas para el libro.
+    - NO genera portada: el contenido del Word se muestra tal cual.
+    - Cada Heading 1 fuerza una nueva pagina (incluido en el contenido).
+    - Una pagina en blanco al inicio alinea correctamente el spread de dos paginas.
     """
     if not HAS_DOCX:
         raise RuntimeError("Falta python-docx. Ejecuta: pip install python-docx")
@@ -148,30 +149,19 @@ def docx_to_pages(docx_path: str) -> list:
     doc = Document(docx_path)
     pages = []
 
-    # Página de portada
-    pages.append({"type": "cover"})
+    # Pagina en blanco a la izquierda del primer spread,
+    # asi la primera pagina de contenido queda a la derecha (como libro real)
+    pages.append({"type": "blank"})
 
-    current_chapter = None
-    current_chapter_label = None
     buffer = []
-    chapter_count = 0
 
     def flush_buffer():
-        """Convierte el buffer de HTML en una o más páginas."""
         if not buffer:
             return
         combined = "".join(buffer)
-        # Dividir en páginas por cantidad de caracteres
         chunks = paginate_html(combined, CHARS_PER_PAGE)
-        for i, chunk in enumerate(chunks):
-            page = {
-                "type":    "content",
-                "content": chunk,
-            }
-            if i == 0 and current_chapter:
-                page["chapter"]       = current_chapter
-                page["chapter_label"] = current_chapter_label
-            pages.append(page)
+        for chunk in chunks:
+            pages.append({"type": "content", "content": chunk})
         buffer.clear()
 
     in_list = False
@@ -180,7 +170,6 @@ def docx_to_pages(docx_path: str) -> list:
         tag = block.tag.split("}")[-1] if "}" in block.tag else block.tag
 
         if tag == "p":
-            # Wrap python-docx para acceder al objeto Paragraph
             from docx.text.paragraph import Paragraph as DocxPara
             para = DocxPara(block, doc)
             style = para.style.name if para.style else ""
@@ -189,20 +178,19 @@ def docx_to_pages(docx_path: str) -> list:
             if not text:
                 continue
 
-            # Nuevo capítulo → flush y reiniciar
+            # Heading 1 -> nueva pagina, heading incluido en el contenido
             if style.startswith("Heading 1"):
+                if in_list:
+                    buffer.append("</ul>")
+                    in_list = False
                 flush_buffer()
-                chapter_count  += 1
-                current_chapter = text
-                current_chapter_label = f"Actividad {chapter_count}"
+                buffer.append(f"<h1>{html.escape(text)}</h1>")
                 continue
 
-            # Sub-headings y párrafos normales
             fragment = para_to_html(para)
             if not fragment:
                 continue
 
-            # Gestión de listas
             if fragment.startswith("<li>"):
                 if not in_list:
                     buffer.append("<ul>")
@@ -220,24 +208,14 @@ def docx_to_pages(docx_path: str) -> list:
             if in_list:
                 buffer.append("</ul>")
                 in_list = False
-            flush_buffer()
-            html_tbl = table_to_html(tbl)
-            pages.append({
-                "type":    "content",
-                "content": html_tbl,
-                "chapter": current_chapter,
-                "chapter_label": current_chapter_label,
-            })
+            buffer.append(table_to_html(tbl))
 
     if in_list:
         buffer.append("</ul>")
     flush_buffer()
 
-    # Asegurar número par de páginas (turn.js necesita pares)
-    if len(pages) % 2 != 0:
-        pages.append({"type": "back"})
-    else:
-        pages.append({"type": "back"})
+    # Contraportada final
+    pages.append({"type": "back"})
 
     return pages
 
@@ -282,14 +260,19 @@ def inject_pages_into_html(pages: list, template_path: str, output_path: str) ->
     pages_json = json.dumps(pages, ensure_ascii=False, indent=2)
     output = template.replace("__PAGES_JSON__", pages_json)
 
-    # Actualizar meta
+    # Actualizar meta — reemplaza los valores en el objeto META del JS
     output = output.replace(
-        '"title": "Actividades del Colegio"',
-        f'"title": "{BOOK_META["title"]}"'
+        'title:    "Actividades del Colegio"',
+        f'title:    "{BOOK_META["title"]}"'
     )
     output = output.replace(
-        '"subtitle": "Registro de actividades y eventos"',
-        f'"subtitle": "{BOOK_META["subtitle"]}"'
+        'subtitle: "Registro de actividades y eventos"',
+        f'subtitle: "{BOOK_META["subtitle"]}"'
+    )
+    # También actualizar el <title> del HTML
+    output = output.replace(
+        '<title>Libro Digital del Colegio</title>',
+        f'<title>{BOOK_META["title"]}</title>'
     )
 
     with open(output_path, "w", encoding="utf-8") as f:
