@@ -193,7 +193,7 @@ def generate_html(
 <meta charset="UTF-8">
 
 <meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 
 <title>{title}</title>
 
@@ -239,7 +239,7 @@ html,body{{
     align-items:center;
     justify-content:space-between;
 
-    padding:0 25px;
+    padding:0 20px;
 
     background:rgba(0,0,0,.55);
 
@@ -286,6 +286,10 @@ html,body{{
     background:white;
 
     overflow:hidden;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }}
 
 .page img{{
@@ -312,21 +316,28 @@ html,body{{
 @media(max-width:1100px){{
 
     #container{{
-        padding-top:50px;
+        padding-top:60px;
+        align-items:flex-start;
     }}
 
     #book{{
-        width:340px !important;
-        height:480px !important;
+        width:100vw !important;
+        height:calc(100vh - 100px) !important;
     }}
 
     .page{{
-        width:340px !important;
-        height:480px !important;
+        width:100vw !important;
+        height:calc(100vh - 100px) !important;
     }}
 
     .page img{{
+        width:100%;
+        height:100%;
+
         object-fit:contain;
+        object-position:center top;
+
+        background:white;
     }}
 }}
 
@@ -365,10 +376,14 @@ const isMobile =
     window.innerWidth <= 1100;
 
 const bookWidth =
-    isMobile ? 340 : 1040;
+    isMobile
+        ? window.innerWidth - 20
+        : 1040;
 
 const bookHeight =
-    isMobile ? 480 : 735;
+    isMobile
+        ? (window.innerHeight - 120)
+        : 735;
 
 $('#book').css({{
     width: bookWidth + 'px',
