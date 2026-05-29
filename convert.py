@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
 """
-convert.py — Descarga el .docx desde Google Drive como PDF,
-             convierte cada página a imagen y genera el libro digital.
+convert.py — Descarga el .docx desde Google Drive, lo convierte a PDF
+             con LibreOffice, y genera el libro digital con las páginas
+             como imágenes (formato 100% preservado).
 
-Dependencias:
+Dependencias Python:
     pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib pdf2image pillow
 
-También requiere poppler instalado en el sistema:
-    Ubuntu/Debian: sudo apt-get install -y poppler-utils
-    Mac:           brew install poppler
-    (En GitHub Actions se instala automáticamente, ver publish.yml)
+Dependencias sistema (instaladas en publish.yml):
+    sudo apt-get install -y libreoffice poppler-utils
 
-Variables de entorno:
-    GOOGLE_SERVICE_ACCOUNT_JSON  — JSON de la cuenta de servicio
-    DRIVE_FILE_ID                — ID del .docx en Google Drive
-    BOOK_TITLE                   — Título (opcional, se toma del doc si no se define)
-    BOOK_SUBTITLE                — Subtítulo (opcional)
+Variables de entorno (GitHub Secrets):
+    GOOGLE_SERVICE_ACCOUNT_JSON
+    DRIVE_FILE_ID
+    BOOK_TITLE    (opcional)
+    BOOK_SUBTITLE (opcional)
 """
 
-import json, os, sys, io, base64, re
+import json, os, sys, io, base64, subprocess, tempfile, shutil
 from pathlib import Path
 
 try:
@@ -30,22 +29,18 @@ except ImportError:
     HAS_GOOGLE = False
 
 try:
-    from pdf2image import convert_from_bytes
+    from pdf2image import convert_from_path
     HAS_PDF2IMAGE = True
 except ImportError:
     HAS_PDF2IMAGE = False
 
-# ──────────────────────────────────────────────
-# CONFIG
-# ──────────────────────────────────────────────
-DPI = 150  # calidad de imagen (150 = buena calidad, tamaño razonable)
-           # subir a 200 para más nitidez, bajar a 120 para archivos más livianos
+DPI = 150  # calidad de imagen (subir a 200 para más nitidez)
 
 # ──────────────────────────────────────────────
-# 1. DESCARGA DESDE GOOGLE DRIVE COMO PDF
+# 1. DESCARGA EL .docx DESDE GOOGLE DRIVE
 # ──────────────────────────────────────────────
 
-def get_drive_service():
+def download_docx(file_id: str, dest_path: str) -> None:
     if not HAS_GOOGLE:
         raise RuntimeError("Falta google-api-python-client.")
     sa_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
@@ -55,31 +50,11 @@ def get_drive_service():
         json.loads(sa_json),
         scopes=["https://www.googleapis.com/auth/drive.readonly"]
     )
-    return build("drive", "v3", credentials=creds, cache_discovery=False)
+    service = build("drive", "v3", credentials=creds, cache_discovery=False)
+    meta = service.files().get(fileId=file_id, fields="name,mimeType").execute()
+    print(f"📄 Archivo: {meta.get('name')} ({meta.get('mimeType')})")
 
-def download_as_pdf(file_id: str) -> bytes:
-    """
-    Exporta el archivo de Drive como PDF y retorna los bytes.
-    Funciona con .docx, .doc, Google Docs, .pptx, etc.
-    """
-    service = get_drive_service()
-
-    # Primero detectar el tipo de archivo
-    meta = service.files().get(fileId=file_id, fields="mimeType,name").execute()
-    mime = meta.get("mimeType", "")
-    name = meta.get("name", "")
-    print(f"📄 Archivo: {name} ({mime})")
-
-    if mime == "application/pdf":
-        # Ya es PDF, descargar directo
-        request = service.files().get_media(fileId=file_id)
-    else:
-        # Exportar como PDF (funciona para Docs, Sheets, Slides, docx, etc.)
-        request = service.files().export_media(
-            fileId=file_id,
-            mimeType="application/pdf"
-        )
-
+    request = service.files().get_media(fileId=file_id)
     fh = io.BytesIO()
     downloader = MediaIoBaseDownload(fh, request)
     done = False
@@ -87,67 +62,89 @@ def download_as_pdf(file_id: str) -> bytes:
         status, done = downloader.next_chunk()
         if status:
             print(f"   Descargando... {int(status.progress() * 100)}%")
-
-    print(f"✅ PDF descargado ({len(fh.getvalue()) // 1024} KB)")
-    return fh.getvalue()
+    with open(dest_path, "wb") as f:
+        f.write(fh.getvalue())
+    print(f"✅ Descargado: {dest_path} ({Path(dest_path).stat().st_size // 1024} KB)")
 
 # ──────────────────────────────────────────────
-# 2. CONVERTIR PDF → IMÁGENES BASE64
+# 2. CONVERTIR .docx → PDF CON LIBREOFFICE
 # ──────────────────────────────────────────────
 
-def pdf_to_images_b64(pdf_bytes: bytes, dpi: int = DPI) -> list:
+def docx_to_pdf(docx_path: str, output_dir: str) -> str:
     """
-    Convierte cada página del PDF a PNG base64.
-    Retorna lista de strings base64.
+    Usa LibreOffice headless para convertir docx a PDF.
+    Retorna la ruta del PDF generado.
     """
+    print("📄 Convirtiendo a PDF con LibreOffice...")
+    result = subprocess.run(
+        [
+            "libreoffice", "--headless", "--convert-to", "pdf",
+            "--outdir", output_dir, docx_path
+        ],
+        capture_output=True, text=True, timeout=120
+    )
+    if result.returncode != 0:
+        print("STDOUT:", result.stdout)
+        print("STDERR:", result.stderr)
+        raise RuntimeError(f"LibreOffice falló con código {result.returncode}")
+
+    # El PDF se genera con el mismo nombre base
+    docx_name = Path(docx_path).stem
+    pdf_path  = Path(output_dir) / f"{docx_name}.pdf"
+    if not pdf_path.exists():
+        # Buscar cualquier PDF generado
+        pdfs = list(Path(output_dir).glob("*.pdf"))
+        if not pdfs:
+            raise RuntimeError("LibreOffice no generó ningún PDF")
+        pdf_path = pdfs[0]
+
+    print(f"✅ PDF generado: {pdf_path} ({pdf_path.stat().st_size // 1024} KB)")
+    return str(pdf_path)
+
+# ──────────────────────────────────────────────
+# 3. PDF → IMÁGENES BASE64
+# ──────────────────────────────────────────────
+
+def pdf_to_images_b64(pdf_path: str, dpi: int = DPI) -> list:
     if not HAS_PDF2IMAGE:
         raise RuntimeError("Falta pdf2image. Ejecuta: pip install pdf2image pillow")
-
     print(f"🖼️  Convirtiendo páginas a imágenes (DPI={dpi})...")
-    images = convert_from_bytes(pdf_bytes, dpi=dpi, fmt="png")
+    images = convert_from_path(pdf_path, dpi=dpi, fmt="png")
     print(f"   {len(images)} páginas encontradas")
-
     b64_pages = []
     for i, img in enumerate(images):
         buf = io.BytesIO()
         img.save(buf, format="PNG", optimize=True)
         b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
         b64_pages.append(b64)
-        print(f"   Página {i+1}/{len(images)} convertida ({len(b64)//1024} KB)")
-
+        print(f"   Página {i+1}/{len(images)} ({len(b64)//1024} KB)")
     return b64_pages
 
 # ──────────────────────────────────────────────
-# 3. GENERAR index.html
+# 4. GENERAR index.html
 # ──────────────────────────────────────────────
 
 def generate_html(pages_b64: list, title: str, subtitle: str, output_path: str):
-    """
-    Genera el index.html completo con las imágenes embebidas.
-    No depende de ningún template externo.
-    """
+    # PAGES array:
+    # PAGES[0] = página 1 del doc  → derecha (portada sola)
+    # PAGES[1] = blank             → izquierda (vacío en primer spread)
+    # PAGES[2] = página 2          → derecha del spread 1
+    # PAGES[3] = página 3          → izquierda del spread 1
+    # ...
+    if not pages_b64:
+        raise RuntimeError("No hay páginas para generar")
 
-    # Build JS pages array
-    pages_js = []
-    # First spread: page 1 alone on the right (left side blank)
-    pages_js.append('{"type":"blank"}')          # PAGES[0] right -> blank (placeholder)
-    # Actually: PAGES[0]=page1(right), PAGES[1]=blank(left)
-    # So: insert real pages first, then blank at index 1
+    parts = []
+    parts.append('{"type":"img","src":"data:image/png;base64,' + pages_b64[0] + '"}')
+    parts.append('{"type":"blank"}')
+    for b64 in pages_b64[1:]:
+        parts.append('{"type":"img","src":"data:image/png;base64,' + b64 + '"}')
 
-    real_pages = [f'{{"type":"img","src":"data:image/png;base64,{b64}"}}' for b64 in pages_b64]
+    # Asegurar número par
+    if len(parts) % 2 != 0:
+        parts.append('{"type":"blank"}')
 
-    # Build final array: [page1, blank, page2, page3, page4, ...]
-    # page1 alone on right of spread 0, blank on left
-    if real_pages:
-        final = [real_pages[0], '{"type":"blank"}'] + real_pages[1:]
-    else:
-        final = []
-
-    # Ensure even count
-    if len(final) % 2 != 0:
-        final.append('{"type":"blank"}')
-
-    pages_json = "[\n  " + ",\n  ".join(final) + "\n]"
+    pages_json = "[\n" + ",\n".join(parts) + "\n]"
 
     html = f"""<!DOCTYPE html>
 <html lang="es">
@@ -160,8 +157,7 @@ def generate_html(pages_b64: list, title: str, subtitle: str, output_path: str):
 <style>
 *,*::before,*::after{{box-sizing:border-box;margin:0;padding:0}}
 :root{{
-  --brown:#3D2B1F;--gold:#B8862A;--gold2:#D4A843;--gold3:#F0C96A;
-  --muted:#8A6F52;--cream:#F7F0E0;
+  --gold:#B8862A;--gold2:#D4A843;--gold3:#F0C96A;--muted:#8A6F52;--cream:#F7F0E0;
   --pw:480px;--ph:660px;
 }}
 html,body{{height:100%;background:#1A0F08;font-family:'Lora',Georgia,serif;overflow:hidden;}}
@@ -187,15 +183,13 @@ body::before{{
   padding-top:52px;perspective:2200px;perspective-origin:50% 45%;
 }}
 #book-wrap{{
-  position:relative;
-  width:calc(var(--pw)*2);height:var(--ph);
-  transform-style:preserve-3d;
-  transform:rotateX(2deg);
-  filter:drop-shadow(0 32px 64px rgba(0,0,0,.8)) drop-shadow(0 8px 16px rgba(0,0,0,.6));
+  position:relative;width:calc(var(--pw)*2);height:var(--ph);
+  transform-style:preserve-3d;transform:rotateX(2deg);
+  filter:drop-shadow(0 32px 64px rgba(0,0,0,.8)) drop-shadow(0 8px 16px rgba(0,0,0,.5));
 }}
 #book-wrap::after{{
-  content:'';position:absolute;left:50%;top:0;bottom:0;width:4px;margin-left:-2px;
-  background:linear-gradient(to right,rgba(26,15,8,.7),rgba(90,55,30,.5),rgba(26,15,8,.7));
+  content:'';position:absolute;left:50%;top:0;bottom:0;width:5px;margin-left:-2px;
+  background:linear-gradient(to right,rgba(10,5,2,.8),rgba(80,45,20,.5),rgba(10,5,2,.8));
   z-index:50;pointer-events:none;
 }}
 .page{{
@@ -205,19 +199,14 @@ body::before{{
 .page.left-page{{left:0;transform-origin:right center;}}
 .page.right-page{{left:var(--pw);transform-origin:left center;}}
 .page.left-page::after{{
-  content:'';position:absolute;top:0;right:0;width:24px;height:100%;
-  background:linear-gradient(to left,rgba(30,18,8,.12),transparent);z-index:2;pointer-events:none;
+  content:'';position:absolute;top:0;right:0;width:28px;height:100%;
+  background:linear-gradient(to left,rgba(20,10,4,.15),transparent);z-index:2;pointer-events:none;
 }}
 .page.right-page::before{{
-  content:'';position:absolute;top:0;left:0;width:24px;height:100%;
-  background:linear-gradient(to right,rgba(30,18,8,.08),transparent);z-index:2;pointer-events:none;
+  content:'';position:absolute;top:0;left:0;width:28px;height:100%;
+  background:linear-gradient(to right,rgba(20,10,4,.1),transparent);z-index:2;pointer-events:none;
 }}
-.page img{{
-  width:100%;height:100%;
-  object-fit:contain;
-  object-position:center top;
-  display:block;
-}}
+.page img{{width:100%;height:100%;object-fit:contain;object-position:center top;display:block;user-select:none;}}
 .page.blank-page{{background:var(--cream);}}
 #flip-layer{{
   position:absolute;width:var(--pw);height:var(--ph);top:0;
@@ -225,9 +214,7 @@ body::before{{
 }}
 #flip-front,#flip-back{{position:absolute;inset:0;backface-visibility:hidden;overflow:hidden;}}
 #flip-back{{transform:rotateY(180deg);}}
-#flip-shadow{{
-  position:absolute;inset:0;z-index:10;pointer-events:none;opacity:0;
-}}
+#flip-shadow{{position:absolute;inset:0;z-index:10;pointer-events:none;opacity:0;}}
 #nav{{
   position:fixed;bottom:24px;left:0;right:0;z-index:200;
   display:flex;align-items:center;justify-content:center;gap:20px;
@@ -238,13 +225,10 @@ body::before{{
   font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;
   transition:all .2s;position:relative;
 }}
-.nav-btn:hover:not(:disabled){{background:rgba(61,43,31,.95);border-color:var(--gold);color:var(--gold3);}}
+.nav-btn:hover:not(:disabled){{background:rgba(61,43,31,.95);border-color:var(--gold3);color:var(--gold3);}}
 .nav-btn:active:not(:disabled){{transform:scale(.93);}}
 .nav-btn:disabled{{opacity:.25;cursor:not-allowed;}}
-.nav-btn .hint{{
-  position:absolute;bottom:-20px;font-size:10px;color:var(--muted);
-  font-family:'Lora',serif;font-style:italic;white-space:nowrap;
-}}
+.nav-btn .hint{{position:absolute;bottom:-20px;font-size:10px;color:var(--muted);font-family:'Lora',serif;font-style:italic;white-space:nowrap;}}
 #page-info{{font-size:13px;color:var(--gold2);font-family:'Playfair Display',serif;min-width:80px;text-align:center;}}
 #loading{{
   position:fixed;inset:0;z-index:300;background:#1A0F08;
@@ -252,14 +236,11 @@ body::before{{
   transition:opacity .6s;
 }}
 #loading.hidden{{opacity:0;pointer-events:none;}}
-.spinner{{
-  width:36px;height:36px;border:2px solid rgba(184,134,42,.2);border-top-color:var(--gold);
-  border-radius:50%;animation:spin .85s linear infinite;
-}}
+.spinner{{width:36px;height:36px;border:2px solid rgba(184,134,42,.2);border-top-color:var(--gold);border-radius:50%;animation:spin .85s linear infinite;}}
 @keyframes spin{{to{{transform:rotate(360deg)}}}}
 #loading p{{font-family:'Playfair Display',serif;color:var(--gold2);font-style:italic;font-size:15px;}}
-@media(max-width:960px){{
-  :root{{--pw:320px;--ph:450px;}}
+@media(max-width:980px){{
+  :root{{--pw:300px;--ph:420px;}}
   #book-wrap{{width:var(--pw)!important;}}
   .page.left-page{{display:none;}}
   #book-wrap::after{{display:none;}}
@@ -291,173 +272,126 @@ body::before{{
   <button class="nav-btn" id="btn-next">&#8594;<span class="hint">siguiente</span></button>
 </div>
 <script>
-const PAGES = {pages_json};
-
-let audioCtx = null;
-function getAudio() {{
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  return audioCtx;
-}}
-function playPageFlip() {{
-  try {{
-    const ctx = getAudio();
-    const buf = ctx.createBuffer(1, ctx.sampleRate * 0.22, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    const sr = ctx.sampleRate;
-    for (let i = 0; i < data.length; i++) {{
-      const t = i / sr;
-      const s = (Math.random() * 2 - 1);
-      const env = Math.exp(-t * 18) * (1 - Math.exp(-t * 180));
-      const thump = Math.exp(-t * 40) * Math.sin(2 * Math.PI * 80 * t) * 0.35;
-      const crinkle = s * Math.sin(2 * Math.PI * (800 + 400 * Math.sin(t * 60)) * t) * 0.5;
-      data[i] = (s * env * 0.4 + crinkle * env * 0.4 + thump) * 0.55;
+const PAGES={pages_json};
+let audioCtx=null;
+function getAudio(){{if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();return audioCtx;}}
+function playFlip(){{
+  try{{
+    const ctx=getAudio(),sr=ctx.sampleRate;
+    const buf=ctx.createBuffer(1,sr*.22,sr),d=buf.getChannelData(0);
+    for(let i=0;i<d.length;i++){{
+      const t=i/sr,s=Math.random()*2-1;
+      const env=Math.exp(-t*18)*(1-Math.exp(-t*180));
+      const thump=Math.exp(-t*40)*Math.sin(2*Math.PI*80*t)*.35;
+      const crk=s*Math.sin(2*Math.PI*(800+400*Math.sin(t*60))*t)*.5;
+      d[i]=(s*env*.4+crk*env*.4+thump)*.55;
     }}
-    const src = ctx.createBufferSource(); src.buffer = buf;
-    const bpf = ctx.createBiquadFilter(); bpf.type='bandpass'; bpf.frequency.value=1800; bpf.Q.value=0.6;
-    const hpf = ctx.createBiquadFilter(); hpf.type='highpass'; hpf.frequency.value=300;
-    const gain = ctx.createGain(); gain.gain.value=0.55;
-    src.connect(hpf); hpf.connect(bpf); bpf.connect(gain); gain.connect(ctx.destination);
-    src.start();
-  }} catch(e) {{}}
+    const src=ctx.createBufferSource();src.buffer=buf;
+    const bpf=ctx.createBiquadFilter();bpf.type='bandpass';bpf.frequency.value=1800;bpf.Q.value=.6;
+    const hpf=ctx.createBiquadFilter();hpf.type='highpass';hpf.frequency.value=300;
+    const g=ctx.createGain();g.gain.value=.55;
+    src.connect(hpf);hpf.connect(bpf);bpf.connect(g);g.connect(ctx.destination);src.start();
+  }}catch(e){{}}
 }}
-
-function buildPageEl(pageData, side) {{
-  const div = document.createElement('div');
-  div.className = 'page ' + side;
-  if (!pageData || pageData.type === 'blank') {{
-    div.classList.add('blank-page');
-    return div;
-  }}
-  if (pageData.type === 'img') {{
-    const img = document.createElement('img');
-    img.src = pageData.src;
-    img.alt = '';
-    img.draggable = false;
-    div.appendChild(img);
-  }}
-  return div;
+function mkPage(data,side){{
+  const d=document.createElement('div');
+  d.className='page '+side;
+  if(!data||data.type==='blank'){{d.classList.add('blank-page');return d;}}
+  const img=document.createElement('img');
+  img.src=data.src;img.alt='';img.draggable=false;
+  d.appendChild(img);return d;
 }}
-
-// Spread N: PAGES[N*2]=right(impar), PAGES[N*2+1]=left(par)
-const isMobile = window.innerWidth <= 960;
-const totalSpreads = Math.ceil(PAGES.length / 2);
-let currentSpread = 0, animating = false;
-
-const leftSlot  = document.getElementById('left-slot');
-const rightSlot = document.getElementById('right-slot');
-const flipLayer = document.getElementById('flip-layer');
-const flipFront = document.getElementById('flip-front');
-const flipBack  = document.getElementById('flip-back');
-const flipShadow= document.getElementById('flip-shadow');
-
-function getSpread(n) {{
-  return {{ rPage: PAGES[n*2]||null, lPage: PAGES[n*2+1]||null, ri:n*2, li:n*2+1 }};
+const isMobile=window.innerWidth<=980;
+const totalSpreads=Math.ceil(PAGES.length/2);
+let cur=0,busy=false;
+const RS=document.getElementById('right-slot');
+const LS=document.getElementById('left-slot');
+const FL=document.getElementById('flip-layer');
+const FF=document.getElementById('flip-front');
+const FB=document.getElementById('flip-back');
+const FS=document.getElementById('flip-shadow');
+function sp(n){{return{{r:PAGES[n*2]||null,l:PAGES[n*2+1]||null}};}}
+function render(n){{
+  const s=sp(n);
+  RS.innerHTML='';LS.innerHTML='';
+  RS.appendChild(mkPage(s.r,'right-page'));
+  if(!isMobile)LS.appendChild(mkPage(s.l,'left-page'));
 }}
-
-function renderSpread(n) {{
-  const {{rPage,lPage}} = getSpread(n);
-  rightSlot.innerHTML = '';
-  leftSlot.innerHTML  = '';
-  rightSlot.appendChild(buildPageEl(rPage, 'right-page'));
-  if (!isMobile) leftSlot.appendChild(buildPageEl(lPage, 'left-page'));
-}}
-
-const FLIP_MS = 480;
-function flipTo(dir) {{
-  if (animating) return;
-  const next = currentSpread + dir;
-  if (next < 0 || next >= totalSpreads) return;
-  animating = true;
-  playPageFlip();
-  const cur = getSpread(currentSpread);
-  const nxt = getSpread(next);
-
-  if (isMobile) {{
-    const f = rightSlot.firstChild;
-    if (f) {{ f.style.transition='opacity .25s'; f.style.opacity='0'; }}
-    setTimeout(() => {{
-      currentSpread=next; renderSpread(next);
-      const t=rightSlot.firstChild;
+const MS=480;
+function go(dir){{
+  if(busy)return;
+  const nx=cur+dir;
+  if(nx<0||nx>=totalSpreads)return;
+  busy=true;playFlip();
+  const cs=sp(cur),ns=sp(nx);
+  if(isMobile){{
+    const f=RS.firstChild;
+    if(f){{f.style.transition='opacity .25s';f.style.opacity='0';}}
+    setTimeout(()=>{{
+      cur=nx;render(nx);
+      const t=RS.firstChild;
       if(t){{t.style.opacity='0';t.style.transition='opacity .25s';}}
-      requestAnimationFrame(()=>{{ if(t) t.style.opacity='1'; }});
-      updateUI(); animating=false;
-    }}, 250);
-    return;
+      requestAnimationFrame(()=>{{if(t)t.style.opacity='1';}});
+      ui();busy=false;
+    }},250);return;
   }}
-
-  if (dir > 0) {{
-    // Página derecha actual gira a la izquierda
-    flipLayer.style.left='var(--pw)'; flipLayer.style.transformOrigin='left center';
-    flipFront.innerHTML='';
-    flipShadow.style.background='linear-gradient(to left,rgba(0,0,0,.35),transparent 70%)';
-    flipFront.appendChild(flipShadow);
-    if (cur.rPage) {{ const e=buildPageEl(cur.rPage,'right-page'); e.style.cssText='position:absolute;inset:0'; flipFront.appendChild(e); }}
-    flipBack.innerHTML='';
-    if (nxt.lPage) {{ const e=buildPageEl(nxt.lPage,'left-page'); e.style.cssText='position:absolute;inset:0;transform:scaleX(-1)'; flipBack.appendChild(e); }}
-    rightSlot.innerHTML='';
-    rightSlot.appendChild(buildPageEl(nxt.rPage,'right-page'));
-  }} else {{
-    // Página izquierda actual gira a la derecha
-    flipLayer.style.left='0'; flipLayer.style.transformOrigin='right center';
-    flipFront.innerHTML='';
-    flipShadow.style.background='linear-gradient(to right,rgba(0,0,0,.35),transparent 70%)';
-    flipFront.appendChild(flipShadow);
-    if (cur.lPage) {{ const e=buildPageEl(cur.lPage,'left-page'); e.style.cssText='position:absolute;inset:0'; flipFront.appendChild(e); }}
-    flipBack.innerHTML='';
-    if (nxt.rPage) {{ const e=buildPageEl(nxt.rPage,'right-page'); e.style.cssText='position:absolute;inset:0;transform:scaleX(-1)'; flipBack.appendChild(e); }}
-    leftSlot.innerHTML='';
-    leftSlot.appendChild(buildPageEl(nxt.lPage,'left-page'));
+  if(dir>0){{
+    FL.style.left='var(--pw)';FL.style.transformOrigin='left center';
+    FF.innerHTML='';FS.style.background='linear-gradient(to left,rgba(0,0,0,.38),transparent 72%)';FF.appendChild(FS);
+    if(cs.r){{const e=mkPage(cs.r,'right-page');e.style.cssText='position:absolute;inset:0';FF.appendChild(e);}}
+    FB.innerHTML='';
+    if(ns.l){{const e=mkPage(ns.l,'left-page');e.style.cssText='position:absolute;inset:0;transform:scaleX(-1)';FB.appendChild(e);}}
+    RS.innerHTML='';RS.appendChild(mkPage(ns.r,'right-page'));
+  }}else{{
+    FL.style.left='0';FL.style.transformOrigin='right center';
+    FF.innerHTML='';FS.style.background='linear-gradient(to right,rgba(0,0,0,.38),transparent 72%)';FF.appendChild(FS);
+    if(cs.l){{const e=mkPage(cs.l,'left-page');e.style.cssText='position:absolute;inset:0';FF.appendChild(e);}}
+    FB.innerHTML='';
+    if(ns.r){{const e=mkPage(ns.r,'right-page');e.style.cssText='position:absolute;inset:0;transform:scaleX(-1)';FB.appendChild(e);}}
+    LS.innerHTML='';LS.appendChild(mkPage(ns.l,'left-page'));
   }}
-
-  flipLayer.style.transition='none'; flipLayer.style.transform='rotateY(0deg)'; flipShadow.style.opacity='0';
-  const deg = dir>0 ? -180 : 180;
+  FL.style.transition='none';FL.style.transform='rotateY(0deg)';FS.style.opacity='0';
+  const deg=dir>0?-180:180;
   requestAnimationFrame(()=>requestAnimationFrame(()=>{{
-    flipLayer.style.transition=`transform ${{FLIP_MS}}ms cubic-bezier(.645,.045,.355,1)`;
-    flipShadow.style.transition=`opacity ${{FLIP_MS}}ms`;
-    flipLayer.style.transform=`rotateY(${{deg}}deg)`;
-    flipShadow.style.opacity='1';
+    FL.style.transition=`transform ${{MS}}ms cubic-bezier(.645,.045,.355,1)`;
+    FS.style.transition=`opacity ${{MS}}ms`;
+    FL.style.transform=`rotateY(${{deg}}deg)`;FS.style.opacity='1';
   }}));
   setTimeout(()=>{{
-    flipLayer.style.transition='none'; flipLayer.style.transform='rotateY(0deg)'; flipShadow.style.opacity='0';
-    currentSpread=next; renderSpread(next); updateUI(); animating=false;
-  }}, FLIP_MS+30);
+    FL.style.transition='none';FL.style.transform='rotateY(0deg)';FS.style.opacity='0';
+    cur=nx;render(nx);ui();busy=false;
+  }},MS+30);
 }}
-
-function updateUI() {{
-  const p = currentSpread*2+1;
+function ui(){{
+  const p=cur*2+1;
   document.getElementById('page-counter').textContent=`Pág. ${{p}}`;
-  document.getElementById('page-info').textContent=`${{currentSpread+1}} / ${{totalSpreads}}`;
-  document.getElementById('btn-prev').disabled = currentSpread<=0;
-  document.getElementById('btn-next').disabled = currentSpread>=totalSpreads-1;
+  document.getElementById('page-info').textContent=`${{cur+1}} / ${{totalSpreads}}`;
+  document.getElementById('btn-prev').disabled=cur<=0;
+  document.getElementById('btn-next').disabled=cur>=totalSpreads-1;
 }}
-
-document.getElementById('btn-prev').addEventListener('click',()=>flipTo(-1));
-document.getElementById('btn-next').addEventListener('click',()=>flipTo(1));
+document.getElementById('btn-prev').addEventListener('click',()=>go(-1));
+document.getElementById('btn-next').addEventListener('click',()=>go(1));
 document.addEventListener('keydown',e=>{{
-  if(e.key==='ArrowRight'||e.key==='ArrowDown') flipTo(1);
-  if(e.key==='ArrowLeft' ||e.key==='ArrowUp')   flipTo(-1);
+  if(e.key==='ArrowRight'||e.key==='ArrowDown')go(1);
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp')go(-1);
 }});
 let tx=null;
 document.addEventListener('touchstart',e=>{{tx=e.touches[0].clientX;}});
 document.addEventListener('touchend',e=>{{
-  if(tx===null)return;
-  const dx=e.changedTouches[0].clientX-tx;
-  if(Math.abs(dx)>50) flipTo(dx<0?1:-1);
-  tx=null;
+  if(tx===null)return;const dx=e.changedTouches[0].clientX-tx;
+  if(Math.abs(dx)>50)go(dx<0?1:-1);tx=null;
 }});
 document.getElementById('stage').addEventListener('click',e=>{{
-  if(e.target.closest('.nav-btn')) return;
+  if(e.target.closest('.nav-btn'))return;
   const w=window.innerWidth;
-  if(e.clientX<w*0.25) flipTo(-1);
-  else if(e.clientX>w*0.75) flipTo(1);
+  if(e.clientX<w*.25)go(-1);else if(e.clientX>w*.75)go(1);
 }});
 document.addEventListener('click',()=>{{try{{getAudio();}}catch(e){{}}}},{{once:true}});
 if(isMobile){{
-  const pw=parseInt(getComputedStyle(document.documentElement).getPropertyValue('--pw'));
-  document.getElementById('book-wrap').style.width=pw+'px';
+  document.getElementById('book-wrap').style.width=
+    getComputedStyle(document.documentElement).getPropertyValue('--pw');
 }}
-renderSpread(0);
-updateUI();
+render(0);ui();
 setTimeout(()=>document.getElementById('loading').classList.add('hidden'),350);
 </script>
 </body>
@@ -465,7 +399,7 @@ setTimeout(()=>document.getElementById('loading').classList.add('hidden'),350);
 
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(html)
-    print(f"✅ index.html generado ({len(pages_b64)} páginas)")
+    print(f"✅ index.html generado ({len(pages_b64)} páginas, {Path(output_path).stat().st_size//1024} KB)")
 
 # ──────────────────────────────────────────────
 # MAIN
@@ -474,47 +408,54 @@ setTimeout(()=>document.getElementById('loading').classList.add('hidden'),350);
 def main():
     base_dir    = Path(__file__).parent
     output_path = base_dir / "index.html"
-
-    title    = os.environ.get("BOOK_TITLE",    "Libro Digital")
-    subtitle = os.environ.get("BOOK_SUBTITLE", "")
-    file_id  = os.environ.get("DRIVE_FILE_ID")
+    title       = os.environ.get("BOOK_TITLE",    "Libro Digital")
+    subtitle    = os.environ.get("BOOK_SUBTITLE",  "")
+    file_id     = os.environ.get("DRIVE_FILE_ID")
 
     if "--demo" in sys.argv or not file_id:
-        print("ℹ️  Modo demo — crea un PDF de prueba para ver el libro funcionando.")
-        print("   Para usar tu documento real, configura DRIVE_FILE_ID en GitHub Secrets.")
-        # Demo: crear un PDF mínimo con texto
-        try:
-            from reportlab.pdfgen import canvas as rl_canvas
-            from reportlab.lib.pagesizes import A4
-            buf = io.BytesIO()
-            c = rl_canvas.Canvas(buf, pagesize=A4)
-            c.setFont("Helvetica-Bold", 24)
-            c.drawString(100, 750, title)
-            c.setFont("Helvetica", 16)
-            c.drawString(100, 710, subtitle)
-            c.setFont("Helvetica", 12)
-            c.drawString(100, 650, "Página de ejemplo — conecta tu documento Word en Drive")
-            c.drawString(100, 630, "para ver el contenido real aquí.")
-            c.showPage()
-            c.setFont("Helvetica-Bold", 18)
-            c.drawString(100, 750, "Segunda página de ejemplo")
-            c.setFont("Helvetica", 12)
-            c.drawString(100, 710, "El contenido de tu Word aparecerá aquí.")
-            c.save()
-            pdf_bytes = buf.getvalue()
-        except ImportError:
-            print("   (reportlab no instalado, usando PDF mínimo)")
-            # PDF mínimo hardcodeado
-            pdf_bytes = b"%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj 2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj 3 0 obj<</Type/Page/MediaBox[0 0 612 792]/Parent 2 0 R>>endobj\nxref\n0 4\n0000000000 65535 f\n0000000009 00000 n\n0000000058 00000 n\n0000000115 00000 n\ntrailer<</Size 4/Root 1 0 R>>\nstartxref\n190\n%%EOF"
-    else:
-        print(f"📥 Descargando documento desde Drive (ID: {file_id})...")
-        pdf_bytes = download_as_pdf(file_id)
+        print("ℹ️  Sin DRIVE_FILE_ID — generando página de ejemplo.")
+        # Página demo simple sin PDF
+        demo_b64 = generate_demo_page(title, subtitle)
+        generate_html([demo_b64], title, subtitle, str(output_path))
+        return
 
-    print("🖼️  Convirtiendo PDF a imágenes...")
-    pages_b64 = pdf_to_images_b64(pdf_bytes, dpi=DPI)
+    tmp_dir = tempfile.mkdtemp()
+    try:
+        # 1. Descargar .docx
+        docx_path = os.path.join(tmp_dir, "documento.docx")
+        download_docx(file_id, docx_path)
 
-    print("📖 Generando libro digital...")
-    generate_html(pages_b64, title, subtitle, str(output_path))
+        # 2. Convertir a PDF con LibreOffice
+        pdf_path = docx_to_pdf(docx_path, tmp_dir)
+
+        # 3. PDF → imágenes
+        pages_b64 = pdf_to_images_b64(pdf_path, dpi=DPI)
+
+        # 4. Generar HTML
+        generate_html(pages_b64, title, subtitle, str(output_path))
+
+    finally:
+        shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+def generate_demo_page(title, subtitle):
+    """Genera una imagen PNG de demo en base64 sin dependencias externas."""
+    try:
+        from PIL import Image, ImageDraw, ImageFont
+        img = Image.new("RGB", (960, 1320), color=(247, 240, 224))
+        draw = ImageDraw.Draw(img)
+        draw.rectangle([40, 40, 920, 1280], outline=(184, 134, 42), width=2)
+        draw.text((480, 400), title,    fill=(61, 43, 31), anchor="mm")
+        draw.text((480, 460), subtitle, fill=(138, 111, 82), anchor="mm")
+        draw.text((480, 560), "Conecta tu documento Word en Drive", fill=(138,111,82), anchor="mm")
+        draw.text((480, 600), "para ver el contenido real aquí.",   fill=(138,111,82), anchor="mm")
+        buf = io.BytesIO()
+        img.save(buf, format="PNG")
+        return base64.b64encode(buf.getvalue()).decode()
+    except Exception:
+        # Mínimo: PNG blanco 1x1
+        return "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwADhQGAWjR9awAAAABJRU5ErkJggg=="
+
 
 if __name__ == "__main__":
     main()
