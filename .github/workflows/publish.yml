@@ -1,52 +1,39 @@
 name: Publicar Libro Digital
 
 on:
-  # ── Disparadores ──────────────────────────────────────────
-  # 1. Push a la rama principal (por si actualizas el template)
   push:
     branches: [main]
-
-  # 2. Ejecución manual desde la pestaña "Actions" en GitHub
   workflow_dispatch:
-
-  # 3. Automático cada día a las 3:00 AM (hora UTC = 00:00 Chile)
-  #    Ajusta el cron si quieres otro horario:
-  #    https://crontab.guru/
   schedule:
     - cron: "0 3 * * *"
 
-# ──────────────────────────────────────────────────────────────
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     permissions:
-      contents: write   # necesario para hacer push a gh-pages
+      contents: write
 
     steps:
-      # 1. Checkout del repo
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. Python
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
 
-      # 3. Instalar dependencias Python
-      - name: Install dependencies
+      - name: Install system dependencies (poppler para pdf2image)
+        run: sudo apt-get install -y poppler-utils
+
+      - name: Install Python dependencies
         run: |
           pip install \
             google-api-python-client \
             google-auth-httplib2 \
             google-auth-oauthlib \
-            python-docx \
-            beautifulsoup4 \
-            lxml
+            pdf2image \
+            pillow
 
-      # 4. Ejecutar el conversor
-      #    Los secrets se configuran en:
-      #    GitHub repo → Settings → Secrets and variables → Actions
       - name: Convert & generate book
         env:
           GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
@@ -55,11 +42,10 @@ jobs:
           BOOK_SUBTITLE:               ${{ secrets.BOOK_SUBTITLE }}
         run: python convert.py
 
-      # 5. Publicar en GitHub Pages (rama gh-pages)
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./          # publica todo el directorio raíz
+          publish_dir: ./
           publish_branch: gh-pages
           commit_message: "📚 Libro actualizado automáticamente"
