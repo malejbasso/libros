@@ -1,15 +1,4 @@
 #!/usr/bin/env python3
-"""
-convert.py — Descarga el .docx desde Google Drive, lo convierte a PDF
-             con LibreOffice, y genera el libro digital con las páginas
-             como imágenes.
-
-Dependencias Python:
-    pip install google-api-python-client google-auth-httplib2 google-auth-oauthlib pdf2image pillow
-
-Dependencias sistema:
-    sudo apt-get install -y libreoffice poppler-utils
-"""
 
 import json
 import os
@@ -36,14 +25,14 @@ try:
 except ImportError:
     HAS_PDF2IMAGE = False
 
-DPI = 150
+DPI = 170
 
 
 # ──────────────────────────────────────────────
-# DESCARGAR DOCX DESDE GOOGLE DRIVE
+# DESCARGAR DOCX
 # ──────────────────────────────────────────────
 
-def download_docx(file_id: str, dest_path: str) -> None:
+def download_docx(file_id: str, dest_path: str):
 
     if not HAS_GOOGLE:
         raise RuntimeError("Falta google-api-python-client")
@@ -51,7 +40,7 @@ def download_docx(file_id: str, dest_path: str) -> None:
     sa_json = os.environ.get("GOOGLE_SERVICE_ACCOUNT_JSON")
 
     if not sa_json:
-        raise ValueError("Variable GOOGLE_SERVICE_ACCOUNT_JSON no encontrada")
+        raise RuntimeError("Falta GOOGLE_SERVICE_ACCOUNT_JSON")
 
     creds = service_account.Credentials.from_service_account_info(
         json.loads(sa_json),
@@ -64,13 +53,6 @@ def download_docx(file_id: str, dest_path: str) -> None:
         credentials=creds,
         cache_discovery=False
     )
-
-    meta = service.files().get(
-        fileId=file_id,
-        fields="name,mimeType"
-    ).execute()
-
-    print(f"📄 Archivo: {meta.get('name')}")
 
     request = service.files().get_media(fileId=file_id)
 
@@ -85,12 +67,12 @@ def download_docx(file_id: str, dest_path: str) -> None:
         status, done = downloader.next_chunk()
 
         if status:
-            print(f"Descargando... {int(status.progress() * 100)}%")
+            print(f"Descargando... {int(status.progress()*100)}%")
 
     with open(dest_path, "wb") as f:
         f.write(fh.getvalue())
 
-    print(f"✅ Descargado: {dest_path}")
+    print("✅ DOCX descargado")
 
 
 # ──────────────────────────────────────────────
@@ -99,7 +81,7 @@ def download_docx(file_id: str, dest_path: str) -> None:
 
 def docx_to_pdf(docx_path: str, output_dir: str) -> str:
 
-    print("📄 Convirtiendo a PDF...")
+    print("📄 Convirtiendo DOCX a PDF...")
 
     result = subprocess.run(
         [
@@ -123,29 +105,23 @@ def docx_to_pdf(docx_path: str, output_dir: str) -> str:
 
         raise RuntimeError("LibreOffice falló")
 
-    docx_name = Path(docx_path).stem
-
-    pdf_path = Path(output_dir) / f"{docx_name}.pdf"
+    pdf_path = Path(output_dir) / (
+        Path(docx_path).stem + ".pdf"
+    )
 
     if not pdf_path.exists():
+        raise RuntimeError("No se generó PDF")
 
-        pdfs = list(Path(output_dir).glob("*.pdf"))
-
-        if not pdfs:
-            raise RuntimeError("No se generó PDF")
-
-        pdf_path = pdfs[0]
-
-    print(f"✅ PDF generado: {pdf_path}")
+    print("✅ PDF generado")
 
     return str(pdf_path)
 
 
 # ──────────────────────────────────────────────
-# PDF → IMÁGENES BASE64
+# PDF → PNG BASE64
 # ──────────────────────────────────────────────
 
-def pdf_to_images_b64(pdf_path: str, dpi: int = DPI) -> list:
+def pdf_to_images_b64(pdf_path: str):
 
     if not HAS_PDF2IMAGE:
         raise RuntimeError("Falta pdf2image")
@@ -154,13 +130,11 @@ def pdf_to_images_b64(pdf_path: str, dpi: int = DPI) -> list:
 
     images = convert_from_path(
         pdf_path,
-        dpi=dpi,
+        dpi=DPI,
         fmt="png"
     )
 
-    print(f"{len(images)} páginas encontradas")
-
-    b64_pages = []
+    pages = []
 
     for i, img in enumerate(images):
 
@@ -176,11 +150,11 @@ def pdf_to_images_b64(pdf_path: str, dpi: int = DPI) -> list:
             buf.getvalue()
         ).decode("utf-8")
 
-        b64_pages.append(b64)
+        pages.append(b64)
 
         print(f"Página {i+1}/{len(images)}")
 
-    return b64_pages
+    return pages
 
 
 # ──────────────────────────────────────────────
@@ -188,26 +162,19 @@ def pdf_to_images_b64(pdf_path: str, dpi: int = DPI) -> list:
 # ──────────────────────────────────────────────
 
 def generate_html(
-    pages_b64: list,
-    title: str,
-    subtitle: str,
-    output_path: str
+    pages_b64,
+    title,
+    subtitle,
+    output_path
 ):
 
-    if not pages_b64:
-        raise RuntimeError("No hay páginas")
+    pages_json = "[" + ",".join([
+        '{"src":"data:image/png;base64,' + p + '"}'
+        for p in pages_b64
+    ]) + "]"
 
-    parts = []
-
-    for b64 in pages_b64:
-
-        parts.append(
-            '{"type":"img","src":"data:image/png;base64,' + b64 + '"}'
-        )
-
-    pages_json = "[" + ",".join(parts) + "]"
-
-    html = f"""<!DOCTYPE html>
+    html = f"""
+<!DOCTYPE html>
 <html lang="es">
 
 <head>
@@ -227,40 +194,39 @@ def generate_html(
 
 <style>
 
-*,*::before,*::after{{
-  box-sizing:border-box;
+*{{
   margin:0;
   padding:0;
-}}
-
-:root{{
-  --gold:#B8862A;
-  --gold2:#D4A843;
-  --gold3:#F0C96A;
-  --cream:#F7F0E0;
-
-  --pw:480px;
-  --ph:660px;
+  box-sizing:border-box;
 }}
 
 html,body{{
+  width:100%;
   height:100%;
   overflow:hidden;
-  background:#1A0F08;
+
+  background:#120904;
+
   font-family:'Lora',serif;
 }}
 
+:root{{
+  --pw:520px;
+  --ph:735px;
+}}
+
 #stage{{
+  width:100%;
   height:100vh;
 
   display:flex;
   align-items:center;
   justify-content:center;
 
-  perspective:2200px;
+  perspective:2400px;
 }}
 
-#book-wrap{{
+#book{{
   position:relative;
 
   width:calc(var(--pw) * 2);
@@ -277,18 +243,21 @@ html,body{{
 
   top:0;
 
-  background:var(--cream);
+  background:white;
 
   overflow:hidden;
 
-  backface-visibility:hidden;
+  box-shadow:
+    0 0 30px rgba(0,0,0,.15);
+
+  border-radius:2px;
 }}
 
-.left-page{{
+.left{{
   left:0;
 }}
 
-.right-page{{
+.right{{
   left:var(--pw);
 }}
 
@@ -296,13 +265,41 @@ html,body{{
   width:100%;
   height:100%;
   object-fit:contain;
+
+  background:white;
 }}
 
-.blank-page{{
-  background:var(--cream);
+#book::after{{
+  content:'';
+
+  position:absolute;
+
+  left:50%;
+  top:0;
+
+  width:30px;
+  height:100%;
+
+  transform:translateX(-50%);
+
+  background:
+    linear-gradient(
+      to right,
+      rgba(0,0,0,.18),
+      rgba(0,0,0,.05),
+      rgba(255,255,255,.6),
+      rgba(0,0,0,.05),
+      rgba(0,0,0,.18)
+    );
+
+  filter:blur(2px);
+
+  z-index:30;
+
+  pointer-events:none;
 }}
 
-#flip-layer{{
+#flip{{
   position:absolute;
 
   width:var(--pw);
@@ -312,49 +309,58 @@ html,body{{
 
   transform-style:preserve-3d;
 
-  pointer-events:none;
-
   z-index:100;
+
+  pointer-events:none;
 }}
 
-#flip-front,
-#flip-back{{
+#front,
+#back{{
   position:absolute;
   inset:0;
 
   backface-visibility:hidden;
 }}
 
-#flip-back{{
+#back{{
   transform:rotateY(180deg);
 }}
 
-#topbar{{
+#toolbar{{
   position:fixed;
 
   top:0;
   left:0;
   right:0;
 
-  height:52px;
-
-  z-index:1000;
+  height:60px;
 
   display:flex;
   align-items:center;
   justify-content:space-between;
 
-  padding:0 24px;
+  padding:0 30px;
 
-  background:rgba(0,0,0,.85);
+  background:rgba(0,0,0,.65);
 
+  backdrop-filter:blur(10px);
+
+  z-index:500;
+}}
+
+#toolbar h1{{
   color:white;
+  font-size:18px;
+}}
+
+#toolbar div{{
+  color:#ddd;
 }}
 
 #nav{{
   position:fixed;
 
-  bottom:20px;
+  bottom:25px;
   left:0;
   right:0;
 
@@ -362,33 +368,49 @@ html,body{{
   align-items:center;
   justify-content:center;
 
-  gap:20px;
+  gap:22px;
+
+  z-index:999;
 }}
 
-.nav-btn{{
-  width:46px;
-  height:46px;
+.btn{{
+  width:56px;
+  height:56px;
 
-  border:none;
   border-radius:50%;
+  border:none;
+
+  background:white;
+
+  font-size:24px;
 
   cursor:pointer;
 
+  box-shadow:
+    0 5px 20px rgba(0,0,0,.35);
+}}
+
+#counter{{
+  color:#D9B45A;
   font-size:22px;
 }}
 
-@media(max-width:980px){{
+@media(max-width:1100px){{
 
   :root{{
-    --pw:300px;
-    --ph:420px;
+    --pw:340px;
+    --ph:480px;
   }}
 
-  #book-wrap{{
+  #book{{
     width:var(--pw);
   }}
 
-  .left-page{{
+  .left{{
+    display:none;
+  }}
+
+  #book::after{{
     display:none;
   }}
 }}
@@ -398,32 +420,32 @@ html,body{{
 
 <body>
 
-<div id="topbar">
+<div id="toolbar">
 
   <div>
     <h1>{title}</h1>
     <div>{subtitle}</div>
   </div>
 
-  <div id="page-counter">
-    Pág. 1
+  <div id="pageLabel">
+    Página 1
   </div>
 
 </div>
 
 <div id="stage">
 
-  <div id="book-wrap">
+  <div id="book">
 
-    <div id="right-slot"></div>
+    <div id="leftSlot"></div>
 
-    <div id="left-slot"></div>
+    <div id="rightSlot"></div>
 
-    <div id="flip-layer">
+    <div id="flip">
 
-      <div id="flip-front"></div>
+      <div id="front"></div>
 
-      <div id="flip-back"></div>
+      <div id="back"></div>
 
     </div>
 
@@ -433,13 +455,13 @@ html,body{{
 
 <div id="nav">
 
-  <button class="nav-btn" id="btn-prev">
+  <button class="btn" id="prev">
     ←
   </button>
 
-  <span id="page-info"></span>
+  <div id="counter"></div>
 
-  <button class="nav-btn" id="btn-next">
+  <button class="btn" id="next">
     →
   </button>
 
@@ -447,221 +469,247 @@ html,body{{
 
 <script>
 
-const PAGES={pages_json};
+const PAGES = {pages_json};
 
-function mkPage(data,side){{
+const isMobile =
+  window.innerWidth <= 1100;
 
-  const d=document.createElement('div');
+// ─────────────────────────────
+// ORDEN REAL DE LIBRO
+//
+// Spread 0 = [vacío][1]
+//
+// Spread 1 = [2][3]
+//
+// Spread 2 = [4][5]
+//
+// Spread 3 = [6][7]
+// ─────────────────────────────
 
-  d.className='page '+side;
+function spread(n){
+
+  if(n === 0){{
+    return {{
+      left:null,
+      right:PAGES[0]
+    }};
+  }}
+
+  return {{
+    left:PAGES[(n*2)-1] || null,
+    right:PAGES[(n*2)] || null
+  }};
+}
+
+const total =
+  Math.ceil((PAGES.length + 1)/2);
+
+let current = 0;
+
+let busy = false;
+
+const leftSlot =
+  document.getElementById('leftSlot');
+
+const rightSlot =
+  document.getElementById('rightSlot');
+
+const flip =
+  document.getElementById('flip');
+
+const front =
+  document.getElementById('front');
+
+const back =
+  document.getElementById('back');
+
+function makePage(data, cls){{
+
+  const d = document.createElement('div');
+
+  d.className = 'page ' + cls;
 
   if(!data){{
-
-    d.classList.add('blank-page');
-
     return d;
   }}
 
-  const img=document.createElement('img');
+  const img = document.createElement('img');
 
-  img.src=data.src;
+  img.src = data.src;
 
   d.appendChild(img);
 
   return d;
 }}
 
-const isMobile=window.innerWidth<=980;
-
-const totalSpreads=Math.ceil((PAGES.length+1)/2);
-
-let cur=0;
-let busy=false;
-
-const RS=document.getElementById('right-slot');
-const LS=document.getElementById('left-slot');
-
-const FL=document.getElementById('flip-layer');
-const FF=document.getElementById('flip-front');
-const FB=document.getElementById('flip-back');
-
-function sp(n){{
-
-  if(n===0){{
-    return {{
-      l:null,
-      r:PAGES[0]||null
-    }};
-  }}
-
-  const leftIndex=(n*2)-1;
-  const rightIndex=(n*2);
-
-  return {{
-    l:PAGES[leftIndex]||null,
-    r:PAGES[rightIndex]||null
-  }};
-}}
-
 function render(n){{
 
-  const s=sp(n);
+  const s = spread(n);
 
-  RS.innerHTML='';
-  LS.innerHTML='';
+  leftSlot.innerHTML = '';
+  rightSlot.innerHTML = '';
 
   if(!isMobile){{
-    LS.appendChild(
-      mkPage(s.l,'left-page')
+    leftSlot.appendChild(
+      makePage(s.left,'left')
     );
   }}
 
-  RS.appendChild(
-    mkPage(s.r,'right-page')
+  rightSlot.appendChild(
+    makePage(s.right,'right')
   );
 }}
 
-function ui(){{
+function updateUI(){{
 
-  let currentPage;
+  let p;
 
-  if(cur===0){{
-    currentPage=1;
+  if(current === 0){{
+    p = 1;
   }}else{{
-    currentPage=cur*2;
+    p = current * 2;
   }}
 
-  document.getElementById('page-counter')
-    .textContent=`Pág. ${{currentPage}}`;
+  document.getElementById('pageLabel')
+    .textContent = 'Página ' + p;
 
-  document.getElementById('page-info')
-    .textContent=`${{cur+1}} / ${{totalSpreads}}`;
-
-  document.getElementById('btn-prev')
-    .disabled=cur<=0;
-
-  document.getElementById('btn-next')
-    .disabled=cur>=totalSpreads-1;
+  document.getElementById('counter')
+    .textContent =
+      (current+1) + ' / ' + total;
 }}
 
 function go(dir){{
 
   if(busy)return;
 
-  const nx=cur+dir;
+  const next = current + dir;
 
-  if(nx<0 || nx>=totalSpreads)return;
+  if(next < 0 || next >= total)return;
 
-  busy=true;
+  busy = true;
 
-  const cs=sp(cur);
-  const ns=sp(nx);
+  const cs = spread(current);
+  const ns = spread(next);
 
   if(isMobile){{
 
-    cur=nx;
+    current = next;
 
-    render(nx);
+    render(current);
 
-    ui();
+    updateUI();
 
-    busy=false;
+    busy = false;
 
     return;
   }}
 
-  if(dir>0){{
+  if(dir > 0){{
 
-    FL.style.left='var(--pw)';
-    FL.style.transformOrigin='left center';
+    flip.style.left='var(--pw)';
+    flip.style.transformOrigin='left center';
 
-    FF.innerHTML='';
-    FB.innerHTML='';
+    front.innerHTML='';
+    back.innerHTML='';
 
-    if(cs.r){{
+    if(cs.right){{
 
-      const e=mkPage(cs.r,'right-page');
+      const p = makePage(cs.right,'right');
 
-      e.style.cssText='position:absolute;inset:0';
+      p.style.cssText =
+        'position:absolute;inset:0';
 
-      FF.appendChild(e);
+      front.appendChild(p);
     }}
 
-    if(ns.l){{
+    if(ns.left){{
 
-      const e=mkPage(ns.l,'left-page');
+      const p = makePage(ns.left,'left');
 
-      e.style.cssText='position:absolute;inset:0';
+      p.style.cssText =
+        'position:absolute;inset:0';
 
-      FB.appendChild(e);
+      back.appendChild(p);
     }}
 
   }}else{{
 
-    FL.style.left='0';
-    FL.style.transformOrigin='right center';
+    flip.style.left='0';
+    flip.style.transformOrigin='right center';
 
-    FF.innerHTML='';
-    FB.innerHTML='';
+    front.innerHTML='';
+    back.innerHTML='';
 
-    if(cs.l){{
+    if(cs.left){{
 
-      const e=mkPage(cs.l,'left-page');
+      const p = makePage(cs.left,'left');
 
-      e.style.cssText='position:absolute;inset:0';
+      p.style.cssText =
+        'position:absolute;inset:0';
 
-      FF.appendChild(e);
+      front.appendChild(p);
     }}
 
-    if(ns.r){{
+    if(ns.right){{
 
-      const e=mkPage(ns.r,'right-page');
+      const p = makePage(ns.right,'right');
 
-      e.style.cssText='position:absolute;inset:0';
+      p.style.cssText =
+        'position:absolute;inset:0';
 
-      FB.appendChild(e);
+      back.appendChild(p);
     }}
   }}
 
-  FL.style.transition='none';
+  leftSlot.innerHTML='';
+  rightSlot.innerHTML='';
 
-  FL.style.transform='rotateY(0deg)';
+  leftSlot.appendChild(
+    makePage(ns.left,'left')
+  );
 
-  const deg=dir>0?-180:180;
+  rightSlot.appendChild(
+    makePage(ns.right,'right')
+  );
+
+  flip.style.transition='none';
+
+  flip.style.transform='rotateY(0deg)';
 
   requestAnimationFrame(()=>{{
     requestAnimationFrame(()=>{{
 
-      FL.style.transition=
-        'transform 480ms cubic-bezier(.645,.045,.355,1)';
+      flip.style.transition =
+        'transform 550ms cubic-bezier(.645,.045,.355,1)';
 
-      FL.style.transform=
-        `rotateY(${{deg}}deg)`;
-
+      flip.style.transform =
+        dir > 0
+          ? 'rotateY(-180deg)'
+          : 'rotateY(180deg)';
     }});
   }});
 
   setTimeout(()=>{{
 
-    cur=nx;
+    flip.style.transition='none';
 
-    render(nx);
+    flip.style.transform='rotateY(0deg)';
 
-    ui();
+    current = next;
 
-    FL.style.transition='none';
+    render(current);
 
-    FL.style.transform='rotateY(0deg)';
+    updateUI();
 
-    busy=false;
+    busy = false;
 
-  }},520);
+  }},580);
 }}
 
-document.getElementById('btn-prev')
+document.getElementById('prev')
   .addEventListener('click',()=>go(-1));
 
-document.getElementById('btn-next')
+document.getElementById('next')
   .addEventListener('click',()=>go(1));
 
 document.addEventListener('keydown',e=>{{
@@ -673,7 +721,7 @@ document.addEventListener('keydown',e=>{{
 
 render(0);
 
-ui();
+updateUI();
 
 </script>
 
@@ -681,10 +729,15 @@ ui();
 </html>
 """
 
-    with open(output_path, "w", encoding="utf-8") as f:
+    with open(
+        output_path,
+        "w",
+        encoding="utf-8"
+    ) as f:
+
         f.write(html)
 
-    print(f"✅ HTML generado: {output_path}")
+    print("✅ index.html generado")
 
 
 # ──────────────────────────────────────────────
@@ -707,7 +760,9 @@ def main():
         ""
     )
 
-    file_id = os.environ.get("DRIVE_FILE_ID")
+    file_id = os.environ.get(
+        "DRIVE_FILE_ID"
+    )
 
     if not file_id:
 
@@ -735,8 +790,7 @@ def main():
         )
 
         pages_b64 = pdf_to_images_b64(
-            pdf_path,
-            dpi=DPI
+            pdf_path
         )
 
         generate_html(
