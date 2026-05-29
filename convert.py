@@ -1,4 +1,3 @@
-```python
 #!/usr/bin/env python3
 """
 convert.py — Descarga el .docx desde Google Drive, lo convierte a PDF
@@ -757,4 +756,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
