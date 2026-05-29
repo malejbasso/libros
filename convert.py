@@ -168,10 +168,19 @@ def generate_html(
     output_path
 ):
 
-    pages_json = "[" + ",".join([
-        '{"src":"data:image/png;base64,' + p + '"}'
-        for p in pages_b64
-    ]) + "]"
+    pages_html = ""
+
+    # Primera página en blanco
+    pages_html += '<div class="page blank"></div>\n'
+
+    # Páginas reales
+    for p in pages_b64:
+
+        pages_html += f'''
+<div class="page">
+    <img src="data:image/png;base64,{p}">
+</div>
+'''
 
     html = f"""
 <!DOCTYPE html>
@@ -186,543 +195,219 @@ def generate_html(
 
 <title>{title}</title>
 
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<script src="turn.js"></script>
+
 <link rel="preconnect"
       href="https://fonts.googleapis.com">
 
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lora:wght@400;500&display=swap"
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap"
       rel="stylesheet">
 
 <style>
 
 *{{
-  margin:0;
-  padding:0;
-  box-sizing:border-box;
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
 }}
 
 html,body{{
-  width:100%;
-  height:100%;
-  overflow:hidden;
+    width:100%;
+    height:100%;
+    overflow:hidden;
 
-  background:#1b1008;
+    background:#1b1008;
 
-  font-family:'Lora',serif;
-}}
-
-:root{{
-  --pw:520px;
-  --ph:735px;
-}}
-
-#stage{{
-  width:100%;
-  height:100vh;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  perspective:2400px;
-}}
-
-#book{{
-  position:relative;
-
-  width:calc(var(--pw) * 2);
-  height:var(--ph);
-
-  transform-style:preserve-3d;
-}}
-
-.page{{
-  position:absolute;
-
-  width:var(--pw);
-  height:var(--ph);
-
-  top:0;
-
-  background:white;
-
-  overflow:hidden;
-
-  box-shadow:
-    0 0 30px rgba(0,0,0,.15);
-
-  border-radius:2px;
-  transition:
-	  transform .25s ease,
-	  box-shadow .25s ease;
-}}
-
-.left{{
-  left:0;
-}}
-
-.right{{
-  left:var(--pw);
-}}
-
-.page img{{
-  width:100%;
-  height:100%;
-  object-fit:contain;
-
-  background:white;
-}}
-
-#book::after{{
-  content:'';
-
-  position:absolute;
-
-  left:50%;
-  top:0;
-
-  width:14px;
-  height:100%;
-
-  transform:translateX(-50%);
-
-  background:
-    linear-gradient(
-      to right,
-      rgba(0,0,0,.35),
-      rgba(255,255,255,.08),
-      rgba(0,0,0,.35)
-    );
-
-  opacity:.45;
-
-  z-index:40;
-
-  pointer-events:none;
-}}
-
-#flip{{
-  position:absolute;
-
-  width:var(--pw);
-  height:var(--ph);
-
-  top:0;
-
-  transform-style:preserve-3d;
-
-  z-index:100;
-
-  pointer-events:none;
-}}
-
-#front,
-#back{{
-  position:absolute;
-  inset:0;
-
-  backface-visibility:hidden;
-}}
-
-#back{{
-  transform:rotateY(180deg);
+    font-family:'Playfair Display',serif;
 }}
 
 #toolbar{{
-  position:fixed;
+    position:fixed;
 
-  top:0;
-  left:0;
-  right:0;
+    top:0;
+    left:0;
+    right:0;
 
-  height:60px;
+    height:60px;
 
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
 
-  padding:0 30px;
+    padding:0 30px;
 
-  background:rgba(0,0,0,.65);
+    background:rgba(0,0,0,.55);
 
-  backdrop-filter:blur(10px);
+    backdrop-filter:blur(10px);
 
-  z-index:500;
+    z-index:9999;
 }}
 
 #toolbar h1{{
-  color:white;
-  font-size:18px;
+    color:white;
+    font-size:20px;
 }}
 
-#toolbar div{{
-  color:#ddd;
+#toolbar .sub{{
+    color:#c9c9c9;
+    font-size:13px;
 }}
 
-#nav{{
-  position:fixed;
-
-  bottom:25px;
-  left:0;
-  right:0;
-
-  display:flex;
-  align-items:center;
-  justify-content:center;
-
-  gap:22px;
-
-  z-index:999;
+#page-number{{
+    color:#E0C27A;
+    font-size:18px;
 }}
 
-.btn{{
-  width:56px;
-  height:56px;
+#container{{
+    width:100%;
+    height:100vh;
 
-  border-radius:50%;
-  border:none;
-
-  background:white;
-
-  font-size:24px;
-
-  cursor:pointer;
-
-  box-shadow:
-    0 5px 20px rgba(0,0,0,.35);
+    display:flex;
+    align-items:center;
+    justify-content:center;
 }}
 
-#counter{{
-  color:#D9B45A;
-  font-size:22px;
+#book{{
+    width:1040px;
+    height:735px;
+}}
+
+.page{{
+    width:520px;
+    height:735px;
+
+    background:white;
+
+    overflow:hidden;
+}}
+
+.page img{{
+    width:100%;
+    height:100%;
+
+    object-fit:contain;
+
+    background:white;
+
+    user-select:none;
+
+    pointer-events:none;
+}}
+
+.blank{{
+    background:white;
+}}
+
+.turn-page{{
+    box-shadow:
+        0 0 25px rgba(0,0,0,.25);
 }}
 
 @media(max-width:1100px){{
 
-  :root{{
-    --pw:340px;
-    --ph:480px;
-  }}
+    #book{{
+        width:340px !important;
+        height:480px !important;
+    }}
 
-  #book{{
-    width:var(--pw);
-  }}
-
-  .left{{
-    display:none;
-  }}
-
-  #book::after{{
-    display:none;
-  }}
+    .page{{
+        width:340px !important;
+        height:480px !important;
+    }}
 }}
 
 </style>
+
 </head>
 
 <body>
 
 <div id="toolbar">
 
-  <div>
-    <h1>{title}</h1>
-    <div>{subtitle}</div>
-  </div>
+    <div>
+        <h1>{title}</h1>
+        <div class="sub">{subtitle}</div>
+    </div>
 
-  <div id="pageLabel">
-    Página 1
-  </div>
+    <div id="page-number">
+        Página 1
+    </div>
 
 </div>
 
-<div id="stage">
+<div id="container">
 
-  <div id="book">
+    <div id="book">
 
-    <div id="leftSlot"></div>
-
-    <div id="rightSlot"></div>
-
-    <div id="flip">
-
-      <div id="front"></div>
-
-      <div id="back"></div>
+        {pages_html}
 
     </div>
 
-  </div>
-
 </div>
 
-<div id="nav">
-
-  <button class="btn" id="prev">
-    ←
-  </button>
-
-  <div id="counter"></div>
-
-  <button class="btn" id="next">
-    →
-  </button>
-
-</div>
+<audio id="flipSound" preload="auto">
+    <source src="page-flip.mp3" type="audio/mpeg">
+</audio>
 
 <script>
 
-const PAGES = {pages_json};
+const sound =
+    document.getElementById('flipSound');
 
 const isMobile =
-  window.innerWidth <= 1100;
+    window.innerWidth <= 1100;
 
+$('#book').turn({{
 
-// ─────────────────────────────
-// ORDEN REAL DE LIBRO
-// ─────────────────────────────
-//
-// Spread 0 = [vacío][1]
-//
-// Spread 1 = [2][3]
-//
-// Spread 2 = [4][5]
-//
-// Spread 3 = [6][7]
-//
-// ─────────────────────────────
+    width: isMobile ? 340 : 1040,
 
-function spread(n){{
+    height: isMobile ? 480 : 735,
 
-  // Primera vista
-  if(n === 0){{
-    return {{
-      left:null,
-      right:PAGES[0]
-    }};
-  }}
+    autoCenter: true,
 
-  return {{
-    left:PAGES[(n*2)-1] || null,
-    right:PAGES[(n*2)] || null
-  }};
-}}
+    gradients: true,
 
-const total =
-  Math.ceil((PAGES.length + 1)/2);
+    acceleration: true,
 
-let current = 0;
+    elevation: 50,
 
-let busy = false;
-
-const leftSlot =
-  document.getElementById('leftSlot');
-
-const rightSlot =
-  document.getElementById('rightSlot');
-
-const flip =
-  document.getElementById('flip');
-
-const front =
-  document.getElementById('front');
-
-const back =
-  document.getElementById('back');
-
-function makePage(data, cls){{
-
-  const d = document.createElement('div');
-
-  d.className = 'page ' + cls;
-
-  if(!data){{
-    return d;
-  }}
-
-  const img = document.createElement('img');
-
-  img.src = data.src;
-
-  d.appendChild(img);
-
-  return d;
-}}
-
-function render(n){{
-
-  const s = spread(n);
-
-  leftSlot.innerHTML = '';
-  rightSlot.innerHTML = '';
-
-  if(!isMobile){{
-    leftSlot.appendChild(
-      makePage(s.left,'left')
-    );
-  }}
-
-  rightSlot.appendChild(
-    makePage(s.right,'right')
-  );
-}}
-
-function updateUI(){{
-
-  let p;
-
-  if(current === 0){{
-    p = 1;
-  }} else {{
-    p = current * 2;
-  }}
-
-  document.getElementById('pageLabel')
-    .textContent = 'Página ' + p;
-
-  document.getElementById('counter')
-    .textContent =
-      (current+1) + ' / ' + total;
-}}
-
-function go(dir){{
-
-  if(busy)return;
-
-  const next = current + dir;
-
-  if(next < 0 || next >= total)return;
-
-  busy = true;
-
-  const cs = spread(current);
-  const ns = spread(next);
-
-  if(isMobile){{
-
-    current = next;
-
-    render(current);
-
-    updateUI();
-
-    busy = false;
-
-    return;
-  }}
-
-  front.innerHTML='';
-  back.innerHTML='';
-
-  if(dir > 0){{
-
-    flip.style.left='var(--pw)';
-    flip.style.transformOrigin='left center';
-
-    // Página visible actual
-    if(cs.right){{
-
-      const p = makePage(cs.right,'right');
-
-      p.style.cssText =
-        'position:absolute;inset:0';
-
-      front.appendChild(p);
-    }}
-
-    // Dorso de la hoja
-    if(ns.left){{
-
-      const p = makePage(ns.left,'left');
-
-      p.style.cssText =
-        'position:absolute;inset:0;';
-
-      back.appendChild(p);
-    }}
-
-  }} else {{
-
-    flip.style.left='0';
-    flip.style.transformOrigin='right center';
-
-    if(cs.left){{
-
-      const p = makePage(cs.left,'left');
-
-      p.style.cssText =
-        'position:absolute;inset:0';
-
-      front.appendChild(p);
-    }}
-
-    if(ns.right){{
-
-      const p = makePage(ns.right,'right');
-
-      p.style.cssText =
-        'position:absolute;inset:0;';
-
-      back.appendChild(p);
-    }}
-  }}
-
-  flip.style.transition='none';
-
-  flip.style.transform='rotateY(0deg)';
-
-  requestAnimationFrame(()=>{{
-    requestAnimationFrame(()=>{{
-
-      flip.style.transition =
-        'transform 650ms cubic-bezier(.645,.045,.355,1)';
-
-      flip.style.transform =
-		  dir > 0
-			? 'rotateY(-18deg) translateX(-12px)'
-			: 'rotateY(18deg) translateX(12px)';
-
-    }});
-  }});
-
-  // IMPORTANTE:
-  // render final SOLO después del flip
-
-  setTimeout(()=>{{
-
-    current = next;
-
-    render(current);
-
-    updateUI();
-
-    flip.style.transition='none';
-
-    flip.style.transform='rotateY(0deg)';
-
-    front.innerHTML='';
-    back.innerHTML='';
-
-    busy = false;
-
-  }},680);
-}}
-
-document.getElementById('prev')
-  .addEventListener('click',()=>go(-1));
-
-document.getElementById('next')
-  .addEventListener('click',()=>go(1));
-
-document.addEventListener('keydown',e=>{{
-
-  if(e.key==='ArrowRight')go(1);
-
-  if(e.key==='ArrowLeft')go(-1);
+    duration: 900
 
 }});
 
-render(0);
+$('#book').bind('turning', function(event, page){{
 
-updateUI();
+    try {{
+        sound.currentTime = 0;
+        sound.play();
+    }}
+    catch(e){{}}
+
+    let realPage = page;
+
+    // Ajustar numeración porque existe página blanca inicial
+    if(realPage > 1){{
+        realPage = realPage - 1;
+    }}
+
+    document.getElementById('page-number')
+        .innerText =
+            'Página ' + realPage;
+}});
+
+document.addEventListener('keydown', e => {{
+
+    if(e.key === 'ArrowRight'){{
+        $('#book').turn('next');
+    }}
+
+    if(e.key === 'ArrowLeft'){{
+        $('#book').turn('previous');
+    }}
+
+}});
 
 </script>
 
