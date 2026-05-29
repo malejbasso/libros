@@ -462,59 +462,43 @@ const PAGES = [
   }
 ];
 
+// Update topbar from meta
+document.getElementById('book-title').textContent = META.title;
+document.getElementById('book-sub').textContent   = META.subtitle;
+
 // ═══════════════════════════════════════
-// SOUND ENGINE  (Web Audio API — sin librerías)
+// SOUND ENGINE
 // ═══════════════════════════════════════
 let audioCtx = null;
-
 function getAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
-
 function playPageFlip() {
   try {
     const ctx = getAudio();
     const buf = ctx.createBuffer(1, ctx.sampleRate * 0.22, ctx.sampleRate);
     const data = buf.getChannelData(0);
     const sr = ctx.sampleRate;
-
-    // Synthesize paper rustle: filtered noise with envelope
     for (let i = 0; i < data.length; i++) {
       const t = i / sr;
-      // noise
-      let s = (Math.random() * 2 - 1);
-      // quick attack, longer decay
+      const s = (Math.random() * 2 - 1);
       const env = Math.exp(-t * 18) * (1 - Math.exp(-t * 180));
-      // add subtle low-freq thump at start
       const thump = Math.exp(-t * 40) * Math.sin(2 * Math.PI * 80 * t) * 0.35;
-      // paper crinkle: modulated noise
       const crinkle = s * Math.sin(2 * Math.PI * (800 + 400 * Math.sin(t * 60)) * t) * 0.5;
       data[i] = (s * env * 0.4 + crinkle * env * 0.4 + thump) * 0.55;
     }
-
-    // Bandpass filter for paper tone
     const source = ctx.createBufferSource();
     source.buffer = buf;
-
     const bpf = ctx.createBiquadFilter();
-    bpf.type = 'bandpass';
-    bpf.frequency.value = 1800;
-    bpf.Q.value = 0.6;
-
+    bpf.type = 'bandpass'; bpf.frequency.value = 1800; bpf.Q.value = 0.6;
     const hpf = ctx.createBiquadFilter();
-    hpf.type = 'highpass';
-    hpf.frequency.value = 300;
-
+    hpf.type = 'highpass'; hpf.frequency.value = 300;
     const gain = ctx.createGain();
     gain.gain.value = 0.55;
-
-    source.connect(hpf);
-    hpf.connect(bpf);
-    bpf.connect(gain);
-    gain.connect(ctx.destination);
+    source.connect(hpf); hpf.connect(bpf); bpf.connect(gain); gain.connect(ctx.destination);
     source.start();
-  } catch(e) { /* silently ignore if audio not available */ }
+  } catch(e) {}
 }
 
 // ═══════════════════════════════════════
@@ -524,78 +508,56 @@ function buildPageEl(pageData, pageNum, side) {
   const div = document.createElement('div');
   div.className = 'page ' + side;
 
-  if (pageData.type === 'blank') {
-    div.classList.add('blank');
+  if (!pageData || pageData.type === 'blank') {
     return div;
   }
-
   if (pageData.type === 'back') {
     div.classList.add('back');
     return div;
   }
 
-  div.innerHTML = `<div class="page-inner">
-    ${pageData.chapter ? `<div class="chapter-header">
-      <div class="chapter-label">${pageData.chapter_label || ''}</div>
-      <div class="chapter-title">${pageData.chapter}</div>
-    </div>` : ''}
-    <div class="page-content">${pageData.content || ''}</div>
-    <span class="page-num">${pageNum}</span>
-  </div>`;
+  div.innerHTML = \`<div class="page-inner">
+    <div class="page-content">\${pageData.content || ''}</div>
+    <span class="page-num">\${pageNum}</span>
+  </div>\`;
   return div;
 }
 
 // ═══════════════════════════════════════
 // BOOK STATE
+//
+// Libro físico:
+//   impar (1, 3, 5...) → DERECHA
+//   par   (2, 4, 6...) → IZQUIERDA
+//
+// Spread N:
+//   right = PAGES[N*2]     (página N*2+1, impar → derecha)
+//   left  = PAGES[N*2 + 1] (página N*2+2, par   → izquierda)
 // ═══════════════════════════════════════
-const isMobile = window.innerWidth <= 880;
+const isMobile    = window.innerWidth <= 880;
+const totalSpreads = Math.ceil(PAGES.length / 2);
+let currentSpread  = 0;
+let animating      = false;
 
-// On desktop: spreads of 2. spread 0 = [cover], spread 1 = [p1,p2], etc.
-// Left page index = spread*2 - 1, right = spread*2
-// Simpler: just track "current left page index" (even = left, odd = right in spread)
-// We show pages as pairs: [0,1], [2,3], [4,5]...
-const spreadSize = isMobile ? 1 : 2;
-const totalSpreads = Math.ceil(PAGES.length / spreadSize);
-let currentSpread = 0;
-let animating = false;
+const leftSlot   = document.getElementById('left-slot');
+const rightSlot  = document.getElementById('right-slot');
+const flipLayer  = document.getElementById('flip-layer');
+const flipFront  = document.getElementById('flip-front');
+const flipBack   = document.getElementById('flip-back');
+const flipShadow = document.getElementById('flip-shadow');
 
-const leftSlot  = document.getElementById('left-slot');
-const rightSlot = document.getElementById('right-slot');
-const flipLayer = document.getElementById('flip-layer');
-const flipFront = document.getElementById('flip-front');
-const flipBack  = document.getElementById('flip-back');
-const flipShadow= document.getElementById('flip-shadow');
-
-function getSpreadPages(spreadIdx) {
-  const li = spreadIdx * spreadSize;
-  const ri = li + 1;
-  return {
-    left:  PAGES[li] || null,
-    right: PAGES[ri] || null,
-    leftIdx:  li,
-    rightIdx: ri
-  };
+function getSpread(n) {
+  const ri = n * 2;
+  const li = n * 2 + 1;
+  return { rPage: PAGES[ri] || null, lPage: PAGES[li] || null, ri, li };
 }
 
-function renderSpread(spreadIdx) {
-  const {left, right, leftIdx, rightIdx} = getSpreadPages(spreadIdx);
-  leftSlot.innerHTML  = '';
+function renderSpread(n) {
+  const { rPage, lPage, ri, li } = getSpread(n);
   rightSlot.innerHTML = '';
-  // In a book: even index (0,2,4...) = right page, odd index (1,3,5...) = left page
-  // Our spread pairs are [0,1],[2,3]... so first of pair goes RIGHT, second goes LEFT
-  if (left  && !isMobile) { const el = buildPageEl(left,  leftIdx,  'right-page'); rightSlot.appendChild(el); }
-  if (right && !isMobile) { const el = buildPageEl(right, rightIdx, 'left-page');  leftSlot.appendChild(el); }
-  if (isMobile) {
-    const el = buildPageEl(left || right, leftIdx, 'left-page');
-    leftSlot.appendChild(el);
-  }
-}
-
-// Pre-render next/prev for cloning into flip layer
-function getPageHTML(pageData, pageNum, side) {
-  if (!pageData) return '<div class="page ' + side + '"></div>';
-  const el = buildPageEl(pageData, pageNum, side);
-  return el.outerHTML;
+  leftSlot.innerHTML  = '';
+  if (rPage) rightSlot.appendChild(buildPageEl(rPage, ri + 1, 'right-page'));
+  if (lPage && !isMobile) leftSlot.appendChild(buildPageEl(lPage, li + 1, 'left-page'));
 }
 
 // ═══════════════════════════════════════
@@ -611,180 +573,143 @@ function flipTo(dir) {
   animating = true;
   playPageFlip();
 
-  const cur  = getSpreadPages(currentSpread);
-  const nxt  = getSpreadPages(next);
+  const cur = getSpread(currentSpread);
+  const nxt = getSpread(next);
 
   if (isMobile) {
-    // Simple fade on mobile
-    const fromEl = leftSlot.firstChild;
-    if (fromEl) fromEl.style.transition = 'opacity .25s';
-    if (fromEl) fromEl.style.opacity = '0';
+    const fromEl = rightSlot.firstChild;
+    if (fromEl) { fromEl.style.transition = 'opacity .25s'; fromEl.style.opacity = '0'; }
     setTimeout(() => {
       currentSpread = next;
       renderSpread(currentSpread);
-      const toEl = leftSlot.firstChild;
-      if (toEl) { toEl.style.opacity='0'; toEl.style.transition='opacity .25s'; }
-      requestAnimationFrame(() => { if (toEl) toEl.style.opacity='1'; });
+      const toEl = rightSlot.firstChild;
+      if (toEl) { toEl.style.opacity = '0'; toEl.style.transition = 'opacity .25s'; }
+      requestAnimationFrame(() => { if (toEl) toEl.style.opacity = '1'; });
       updateUI(); animating = false;
     }, 250);
     return;
   }
 
-  // Desktop: 3D flip
-  // Forward (next): right page flips left (over the spine to become new left)
-  // Backward (prev): left page flips right (over the spine to become new right)
-
   if (dir > 0) {
-    // Forward flip: the visible RIGHT page (spread.left data) peels leftward
-    flipLayer.className = 'flip-layer flip-right';
+    // Avanzar: página DERECHA actual (cur.rPage) se dobla hacia la izquierda
     flipLayer.style.left = 'var(--pw)';
     flipLayer.style.transformOrigin = 'left center';
 
-    // Front = current visible right page (= spread.left in data)
     flipFront.innerHTML = '';
-    flipShadow.style.background = 'linear-gradient(to left,rgba(0,0,0,.3),transparent 60%)';
+    flipShadow.style.background = 'linear-gradient(to left,rgba(0,0,0,.35),transparent 70%)';
     flipFront.appendChild(flipShadow);
-    if (cur.left) {
-      const el = buildPageEl(cur.left, cur.leftIdx, 'right-page');
-      el.style.position = 'absolute'; el.style.inset = '0';
+    if (cur.rPage) {
+      const el = buildPageEl(cur.rPage, cur.ri + 1, 'right-page');
+      el.style.cssText = 'position:absolute;inset:0';
       flipFront.appendChild(el);
     }
 
-    // Back = next spread right page (= nxt.right in data), mirrored
+    // Reverso: nueva página IZQUIERDA (nxt.lPage), espejada
     flipBack.innerHTML = '';
-    if (nxt.right) {
-      const el = buildPageEl(nxt.right, nxt.rightIdx, 'left-page');
-      el.style.position = 'absolute'; el.style.inset = '0';
-      el.style.transform = 'scaleX(-1)';
+    if (nxt.lPage) {
+      const el = buildPageEl(nxt.lPage, nxt.li + 1, 'left-page');
+      el.style.cssText = 'position:absolute;inset:0;transform:scaleX(-1)';
       flipBack.appendChild(el);
     }
 
-    // Pre-render next left slot (visible left page = nxt.left data)
-    leftSlot.innerHTML = '';
-    if (nxt.left) {
-      const el = buildPageEl(nxt.left, nxt.leftIdx, 'right-page');
-      leftSlot.appendChild(el);
-    }
+    // Pre-render nueva página derecha (queda visible detrás del flip)
+    rightSlot.innerHTML = '';
+    if (nxt.rPage) rightSlot.appendChild(buildPageEl(nxt.rPage, nxt.ri + 1, 'right-page'));
 
-    // Start animation
-    flipLayer.style.transform = 'rotateY(0deg)';
-    flipLayer.style.transition = `transform ${FLIP_MS}ms cubic-bezier(.645,.045,.355,1.000)`;
-    flipShadow.style.opacity = '0';
-    flipShadow.style.transition = `opacity ${FLIP_MS}ms`;
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        flipLayer.style.transform = 'rotateY(-180deg)';
-        flipShadow.style.opacity = '1';
-      });
-    });
-
-    setTimeout(() => {
-      flipLayer.style.transition = 'none';
-      flipLayer.style.transform  = 'rotateY(0deg)';
-      currentSpread = next;
-      renderSpread(currentSpread);
-      updateUI();
-      animating = false;
-    }, FLIP_MS + 20);
+    animate(-180);
 
   } else {
-    // Backward flip: visible LEFT page (= spread.right data) peels rightward
-    flipLayer.className = 'flip-layer flip-left';
+    // Retroceder: página IZQUIERDA actual (cur.lPage) se dobla hacia la derecha
     flipLayer.style.left = '0';
     flipLayer.style.transformOrigin = 'right center';
 
     flipFront.innerHTML = '';
-    flipShadow.style.background = 'linear-gradient(to right,rgba(0,0,0,.3),transparent 60%)';
+    flipShadow.style.background = 'linear-gradient(to right,rgba(0,0,0,.35),transparent 70%)';
     flipFront.appendChild(flipShadow);
-    if (cur.right) {
-      const el = buildPageEl(cur.right, cur.rightIdx, 'left-page');
-      el.style.position = 'absolute'; el.style.inset = '0';
+    if (cur.lPage) {
+      const el = buildPageEl(cur.lPage, cur.li + 1, 'left-page');
+      el.style.cssText = 'position:absolute;inset:0';
       flipFront.appendChild(el);
     }
 
+    // Reverso: página DERECHA anterior (nxt.rPage), espejada
     flipBack.innerHTML = '';
-    if (nxt.left) {
-      const el = buildPageEl(nxt.left, nxt.leftIdx, 'right-page');
-      el.style.position = 'absolute'; el.style.inset = '0';
-      el.style.transform = 'scaleX(-1)';
+    if (nxt.rPage) {
+      const el = buildPageEl(nxt.rPage, nxt.ri + 1, 'right-page');
+      el.style.cssText = 'position:absolute;inset:0;transform:scaleX(-1)';
       flipBack.appendChild(el);
     }
 
-    rightSlot.innerHTML = '';
-    if (nxt.right) {
-      const el = buildPageEl(nxt.right, nxt.rightIdx, 'left-page');
-      rightSlot.appendChild(el);
-    }
+    // Pre-render nueva página izquierda
+    leftSlot.innerHTML = '';
+    if (nxt.lPage) leftSlot.appendChild(buildPageEl(nxt.lPage, nxt.li + 1, 'left-page'));
 
-    flipLayer.style.transform = 'rotateY(0deg)';
-    flipLayer.style.transition = `transform ${FLIP_MS}ms cubic-bezier(.645,.045,.355,1.000)`;
-    flipShadow.style.opacity = '0';
-    flipShadow.style.transition = `opacity ${FLIP_MS}ms`;
+    animate(180);
+  }
 
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        flipLayer.style.transform = 'rotateY(180deg)';
-        flipShadow.style.opacity = '1';
-      });
-    });
-
+  function animate(deg) {
+    flipLayer.style.transition = 'none';
+    flipLayer.style.transform  = 'rotateY(0deg)';
+    flipShadow.style.opacity   = '0';
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      flipLayer.style.transition  = \`transform \${FLIP_MS}ms cubic-bezier(.645,.045,.355,1)\`;
+      flipShadow.style.transition = \`opacity \${FLIP_MS}ms\`;
+      flipLayer.style.transform   = \`rotateY(\${deg}deg)\`;
+      flipShadow.style.opacity    = '1';
+    }));
     setTimeout(() => {
       flipLayer.style.transition = 'none';
       flipLayer.style.transform  = 'rotateY(0deg)';
+      flipShadow.style.opacity   = '0';
       currentSpread = next;
       renderSpread(currentSpread);
       updateUI();
       animating = false;
-    }, FLIP_MS + 20);
+    }, FLIP_MS + 30);
   }
 }
 
 // ═══════════════════════════════════════
-// UI
+// UI & EVENTS
 // ═══════════════════════════════════════
 function updateUI() {
-  document.getElementById('page-counter').textContent = `Pág. ${currentSpread * spreadSize + 1}`;
-  document.getElementById('page-info').textContent    = `${currentSpread + 1} / ${totalSpreads}`;
+  const p = currentSpread * 2 + 1;
+  document.getElementById('page-counter').textContent = \`Pág. \${p}\`;
+  document.getElementById('page-info').textContent    = \`\${currentSpread + 1} / \${totalSpreads}\`;
   document.getElementById('btn-prev').disabled = currentSpread <= 0;
   document.getElementById('btn-next').disabled = currentSpread >= totalSpreads - 1;
 }
 
 document.getElementById('btn-prev').addEventListener('click', () => flipTo(-1));
 document.getElementById('btn-next').addEventListener('click', () => flipTo(1));
-
 document.addEventListener('keydown', e => {
-  if (e.key==='ArrowRight'||e.key==='ArrowDown') flipTo(1);
-  if (e.key==='ArrowLeft' ||e.key==='ArrowUp')   flipTo(-1);
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') flipTo(1);
+  if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   flipTo(-1);
 });
 
-// Swipe
 let tx = null;
 document.addEventListener('touchstart', e => { tx = e.touches[0].clientX; });
 document.addEventListener('touchend',   e => {
-  if (tx===null) return;
+  if (tx === null) return;
   const dx = e.changedTouches[0].clientX - tx;
-  if (Math.abs(dx)>50) flipTo(dx<0?1:-1);
+  if (Math.abs(dx) > 50) flipTo(dx < 0 ? 1 : -1);
   tx = null;
 });
 
-// Click zones
 document.getElementById('stage').addEventListener('click', e => {
+  if (e.target.closest('.nav-btn')) return;
   const w = window.innerWidth;
-  if (e.clientX < w * 0.3) flipTo(-1);
-  else if (e.clientX > w * 0.7) flipTo(1);
+  if (e.clientX < w * 0.25) flipTo(-1);
+  else if (e.clientX > w * 0.75) flipTo(1);
 });
 
-// Unlock audio on first interaction
 document.addEventListener('click', () => { try { getAudio(); } catch(e){} }, { once: true });
 
-// Mobile sizing
 if (isMobile) {
   const pw = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--pw'));
   document.getElementById('book-wrap').style.width = pw + 'px';
 }
 
-// Init
 renderSpread(0);
 updateUI();
 setTimeout(() => document.getElementById('loading').classList.add('hidden'), 350);
